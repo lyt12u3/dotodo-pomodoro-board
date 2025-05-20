@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ListTodo, Timer } from "lucide-react";
+import { ListTodo, Timer, Settings as SettingsIcon } from "lucide-react";
 
 const Sidebar = () => {
   return (
@@ -33,6 +33,17 @@ const Sidebar = () => {
             >
               <Timer className="w-5 h-5 mr-3" />
               Pomodoro
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/settings" 
+              className={({ isActive }) =>
+                `flex items-center px-3 py-2 rounded-md ${isActive ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <SettingsIcon className="w-5 h-5 mr-3" />
+              Settings
             </NavLink>
           </li>
         </ul>

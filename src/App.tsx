@@ -8,6 +8,7 @@ import { PomodoroProvider } from "@/contexts/PomodoroContext";
 import MainLayout from "./components/layout/MainLayout";
 import Tasks from "./pages/Tasks";
 import Pomodoro from "./pages/Pomodoro";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
               <Route element={<MainLayout />}>
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/pomodoro" element={<Pomodoro />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
               
               {/* Redirect root to tasks */}
