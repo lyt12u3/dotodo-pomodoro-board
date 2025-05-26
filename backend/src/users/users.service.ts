@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
-import type { User } from '../prisma/generated/client';
+import { PrismaService } from '../prisma/prisma.service'; // Adjusted path for future PrismaService location
+import type { User } from '../../prisma/generated/client'; // Adjusted path
 
 @Injectable()
 export class UsersService {
@@ -28,4 +28,4 @@ export class UsersService {
       data: updateData,
     });
   }
-}
+} 

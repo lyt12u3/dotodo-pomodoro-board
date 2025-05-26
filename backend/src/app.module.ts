@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth.module';
-import { UsersModule } from './users.module';
-import { TasksModule } from './tasks.module';
-import { PomodoroModule } from './pomodoro.module';
-import { PrismaModule } from './prisma.module';
+import { UsersModule } from './users/users.module';
+import { TasksModule } from './tasks/tasks.module';
+import { PomodoroModule } from './pomodoro/pomodoro.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({

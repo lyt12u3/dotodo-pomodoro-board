@@ -3,8 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt'; // ExtractJwt is not directly used if cookieExtractor is comprehensive
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import { UsersService } from '../../users.service'; // Corrected path from src/auth/strategies to src/
-// import type { User } from '../../../prisma/generated/client'; // Path to Prisma User type, using any for now in validate return
+import { UsersService } from '../../users/users.service'; // Updated path: src/auth/strategies -> src/users/
+import type { User } from '../../../prisma/generated/client'; // Updated path: src/auth/strategies -> prisma/
 
 // Helper function to extract JWT from cookie
 const cookieExtractor = (req: Request): string | null => {
@@ -31,7 +31,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') { // Use 'jwt
   }
 
   // Payload is the decoded JWT (from AuthService: { email: user.email, sub: user.id, name: user.name })
-  async validate(payload: { sub: string; email: string; name: string }): Promise<any> { // Return type can be refined to Omit<User, 'password'>
+  async validate(payload: { sub: string; email: string; name: string }): Promise<Omit<User, 'password'> | null> { // Refined return type
     if (!payload || !payload.sub) {
         throw new UnauthorizedException('Invalid token payload');
     }

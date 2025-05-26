@@ -2,10 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
+  app.use(helmet());
   app.use(cookieParser());
 
   app.useGlobalPipes(new ValidationPipe({
@@ -17,6 +21,9 @@ async function bootstrap() {
     },
   }));
 
+  app.useGlobalFilters(new AllExceptionsFilter());
+
   await app.listen(process.env.PORT || 3000);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
