@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePomodoroDto } from './dto/create-pomodoro.dto';
+import { CreatePomodoroDto, PomodoroStatus } from './dto/create-pomodoro.dto';
 import { UpdatePomodoroDto } from './dto/update-pomodoro.dto';
-import type { PomodoroSession } from '../../prisma/generated/client'; // Path should be correct relative to src/pomodoro/
+import { Prisma, PomodoroSession } from '@prisma/client';
 
 @Injectable()
 export class PomodoroService {
@@ -47,9 +47,17 @@ export class PomodoroService {
 
   async update(id: string, updatePomodoroDto: UpdatePomodoroDto, userId: string): Promise<PomodoroSession> {
     await this.findOne(id, userId); // Ensures session exists and user has permission
+
+    const dataToUpdate: Prisma.PomodoroSessionUpdateInput = {};
+    if (updatePomodoroDto.status !== undefined) {
+      dataToUpdate.isCompleted = updatePomodoroDto.status === PomodoroStatus.COMPLETED;
+    }
+    // If updatePomodoroDto.startTime or updatePomodoroDto.duration are meant to update
+    // properties on PomodoroSession or related entities, that logic needs to be added here.
+
     return this.prisma.pomodoroSession.update({
-      where: { id }, 
-      data: updatePomodoroDto,
+      where: { id },
+      data: dataToUpdate,
     });
   }
 

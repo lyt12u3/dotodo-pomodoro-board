@@ -44,6 +44,30 @@ export class AuthController {
     });
   }
 
+  private _setAccessTokenCookie(response: Response, accessToken: string) {
+    const accessExpirationStr = this.configService.get<string>('JWT_ACCESS_EXPIRATION_TIME'); // Assuming you have this in your config
+    if (!accessExpirationStr) {
+      // Default to a shorter lifespan if not configured, e.g., 15 minutes
+      // Or throw an error if it's critical to be configured
+      // For now, let's assume a default or handle error as per your app's needs
+      // This example will throw if not configured, similar to refresh token.
+      throw new InternalServerErrorException('JWT_ACCESS_EXPIRATION_TIME is not configured.');
+    }
+    const accessExpiresInMs = ms(accessExpirationStr as any); 
+    if (typeof accessExpiresInMs !== 'number') {
+      throw new InternalServerErrorException('Invalid JWT_ACCESS_EXPIRATION_TIME format.');
+    }
+    const accessExpires = new Date(Date.now() + accessExpiresInMs);
+
+    response.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
+      sameSite: 'lax',
+      path: '/',
+      expires: accessExpires, // Set expiration for the access token cookie
+    });
+  }
+
   @Post('register')
   async register(@Body() registerDto: RegisterAuthDto, @Res({ passthrough: true }) response: Response) {
     try {
@@ -67,8 +91,13 @@ export class AuthController {
   async login(@Body() loginDto: LoginAuthDto, @Res({ passthrough: true }) response: Response) {
     try {
       const result = await this.authService.login(loginDto);
+      this._setAccessTokenCookie(response, result.accessToken); // Set access_token cookie
       this._setRefreshTokenCookie(response, result.refreshToken);
       
+      // It's common to not return the accessToken in the body if it's in an HttpOnly cookie
+      // return { message: 'Login successful', user: result.user };
+      // However, returning it can be useful for some client-side scenarios or debugging.
+      // For now, I'll keep it as it was, but you might want to remove it from the body.
       return { message: 'Login successful', accessToken: result.accessToken, user: result.user };
     } catch (error: any) {
       if (error.status === HttpStatus.UNAUTHORIZED) {
@@ -92,6 +121,7 @@ export class AuthController {
 
     try {
       const result = await this.authService.refreshTokens(userId, refreshTokenFromCookie);
+      this._setAccessTokenCookie(response, result.accessToken); // Also set new access_token on refresh
       this._setRefreshTokenCookie(response, result.refreshToken);
       return { message: 'Tokens refreshed successfully', accessToken: result.accessToken, user: result.user };
     } catch (error: any) {

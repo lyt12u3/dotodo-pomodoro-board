@@ -1,19 +1,25 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTaskDto } from './dto/create-task.dto';
+import { CreateTaskDto, TaskStatus } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import type { Task } from '../../prisma/generated/client'; // Path should be correct relative to src/tasks/
+import { Prisma, Task } from '@prisma/client';
 
 @Injectable()
 export class TasksService {
   constructor(private prisma: PrismaService) {}
 
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
+    const dataToCreate: Prisma.TaskCreateInput = {
+      user: { connect: { id: userId } },
+      name: createTaskDto.title,
+    };
+
+    if (createTaskDto.status !== undefined) {
+      dataToCreate.isCompleted = createTaskDto.status === TaskStatus.COMPLETED;
+    }
+
     return this.prisma.task.create({
-      data: {
-        ...createTaskDto,
-        userId,
-      },
+      data: dataToCreate,
     });
   }
 
@@ -23,7 +29,7 @@ export class TasksService {
     });
   }
 
-  async findOne(id: string, userId: string): Promise<Task> { // Return type changed to Task, null check handled by throw
+  async findOne(id: string, userId: string): Promise<Task> {
     const task = await this.prisma.task.findUnique({
       where: { id },
     });
@@ -39,17 +45,26 @@ export class TasksService {
   }
 
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string): Promise<Task> {
-    await this.findOne(id, userId); // Ensures task exists and user has permission by calling findOne
+    await this.findOne(id, userId);
+
+    const dataToUpdate: Prisma.TaskUpdateInput = {};
+    if (updateTaskDto.title !== undefined) {
+      dataToUpdate.name = updateTaskDto.title;
+    }
+    if (updateTaskDto.status !== undefined) {
+      dataToUpdate.isCompleted = updateTaskDto.status === TaskStatus.COMPLETED;
+    }
+
     return this.prisma.task.update({
-      where: { id }, // id is already validated to belong to the user by findOne
-      data: updateTaskDto,
+      where: { id },
+      data: dataToUpdate,
     });
   }
 
   async remove(id: string, userId: string): Promise<Task> {
-    await this.findOne(id, userId); // Ensures task exists and user has permission
+    await this.findOne(id, userId);
     return this.prisma.task.delete({
-      where: { id }, // id is already validated to belong to the user by findOne
+      where: { id },
     });
   }
 } 

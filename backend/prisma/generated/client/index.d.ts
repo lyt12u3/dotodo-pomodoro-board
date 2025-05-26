@@ -290,7 +290,7 @@ export namespace Prisma {
 
   /**
    * Prisma Client JS version: 6.8.2
-   * Query Engine version: 605197351a3c8bdd595af2d2a9bc3025bca48ea2
+   * Query Engine version: 2060c79ba17c6bb9f5823312b6f6b7f4a845738e
    */
   export type PrismaVersion = {
     client: string
@@ -750,6 +750,10 @@ export namespace Prisma {
             args: Prisma.UserUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
+          updateManyAndReturn: {
+            args: Prisma.UserUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserPayload>[]
+          }
           upsert: {
             args: Prisma.UserUpsertArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$UserPayload>
@@ -819,6 +823,10 @@ export namespace Prisma {
           updateMany: {
             args: Prisma.TaskUpdateManyArgs<ExtArgs>
             result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.TaskUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaskPayload>[]
           }
           upsert: {
             args: Prisma.TaskUpsertArgs<ExtArgs>
@@ -890,6 +898,10 @@ export namespace Prisma {
             args: Prisma.TimeBlockUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
+          updateManyAndReturn: {
+            args: Prisma.TimeBlockUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TimeBlockPayload>[]
+          }
           upsert: {
             args: Prisma.TimeBlockUpsertArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$TimeBlockPayload>
@@ -960,6 +972,10 @@ export namespace Prisma {
             args: Prisma.PomodoroSessionUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
+          updateManyAndReturn: {
+            args: Prisma.PomodoroSessionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PomodoroSessionPayload>[]
+          }
           upsert: {
             args: Prisma.PomodoroSessionUpsertArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$PomodoroSessionPayload>
@@ -1029,6 +1045,10 @@ export namespace Prisma {
           updateMany: {
             args: Prisma.PomodoroRoundUpdateManyArgs<ExtArgs>
             result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PomodoroRoundUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PomodoroRoundPayload>[]
           }
           upsert: {
             args: Prisma.PomodoroRoundUpsertArgs<ExtArgs>
@@ -1566,6 +1586,17 @@ export namespace Prisma {
     intervalsCount?: boolean
   }, ExtArgs["result"]["user"]>
 
+  export type UserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    email?: boolean
+    name?: boolean
+    password?: boolean
+    workInterval?: boolean
+    breakInterval?: boolean
+    intervalsCount?: boolean
+  }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
     id?: boolean
@@ -1587,6 +1618,7 @@ export namespace Prisma {
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type UserIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $UserPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "User"
@@ -1809,6 +1841,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends UserUpdateManyArgs>(args: SelectSubset<T, UserUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Users and returns the data updated in the database.
+     * @param {UserUpdateManyAndReturnArgs} args - Arguments to update many Users.
+     * @example
+     * // Update many Users
+     * const user = await prisma.user.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Users and only return the `id`
+     * const userWithIdOnly = await prisma.user.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends UserUpdateManyAndReturnArgs>(args: SelectSubset<T, UserUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one User.
@@ -2299,6 +2361,36 @@ export namespace Prisma {
      * Filter which Users to update
      */
     where?: UserWhereInput
+    /**
+     * Limit how many Users to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * User updateManyAndReturn
+   */
+  export type UserUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * The data used to update Users.
+     */
+    data: XOR<UserUpdateManyMutationInput, UserUncheckedUpdateManyInput>
+    /**
+     * Filter which Users to update
+     */
+    where?: UserWhereInput
+    /**
+     * Limit how many Users to update.
+     */
+    limit?: number
   }
 
   /**
@@ -2361,6 +2453,10 @@ export namespace Prisma {
      * Filter which Users to delete
      */
     where?: UserWhereInput
+    /**
+     * Limit how many Users to delete.
+     */
+    limit?: number
   }
 
   /**
@@ -2648,6 +2744,16 @@ export namespace Prisma {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["task"]>
 
+  export type TaskSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    name?: boolean
+    priority?: boolean
+    isCompleted?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["task"]>
 
   export type TaskSelectScalar = {
     id?: boolean
@@ -2664,6 +2770,9 @@ export namespace Prisma {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
   export type TaskIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type TaskIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
 
@@ -2884,6 +2993,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends TaskUpdateManyArgs>(args: SelectSubset<T, TaskUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Tasks and returns the data updated in the database.
+     * @param {TaskUpdateManyAndReturnArgs} args - Arguments to update many Tasks.
+     * @example
+     * // Update many Tasks
+     * const task = await prisma.task.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Tasks and only return the `id`
+     * const taskWithIdOnly = await prisma.task.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TaskUpdateManyAndReturnArgs>(args: SelectSubset<T, TaskUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one Task.
@@ -3374,6 +3513,40 @@ export namespace Prisma {
      * Filter which Tasks to update
      */
     where?: TaskWhereInput
+    /**
+     * Limit how many Tasks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Task updateManyAndReturn
+   */
+  export type TaskUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Task
+     */
+    select?: TaskSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Task
+     */
+    omit?: TaskOmit<ExtArgs> | null
+    /**
+     * The data used to update Tasks.
+     */
+    data: XOR<TaskUpdateManyMutationInput, TaskUncheckedUpdateManyInput>
+    /**
+     * Filter which Tasks to update
+     */
+    where?: TaskWhereInput
+    /**
+     * Limit how many Tasks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TaskIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -3436,6 +3609,10 @@ export namespace Prisma {
      * Filter which Tasks to delete
      */
     where?: TaskWhereInput
+    /**
+     * Limit how many Tasks to delete.
+     */
+    limit?: number
   }
 
   /**
@@ -3698,6 +3875,17 @@ export namespace Prisma {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["timeBlock"]>
 
+  export type TimeBlockSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    name?: boolean
+    color?: boolean
+    duration?: boolean
+    order?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["timeBlock"]>
 
   export type TimeBlockSelectScalar = {
     id?: boolean
@@ -3715,6 +3903,9 @@ export namespace Prisma {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
   export type TimeBlockIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type TimeBlockIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
 
@@ -3936,6 +4127,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends TimeBlockUpdateManyArgs>(args: SelectSubset<T, TimeBlockUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TimeBlocks and returns the data updated in the database.
+     * @param {TimeBlockUpdateManyAndReturnArgs} args - Arguments to update many TimeBlocks.
+     * @example
+     * // Update many TimeBlocks
+     * const timeBlock = await prisma.timeBlock.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more TimeBlocks and only return the `id`
+     * const timeBlockWithIdOnly = await prisma.timeBlock.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TimeBlockUpdateManyAndReturnArgs>(args: SelectSubset<T, TimeBlockUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TimeBlockPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one TimeBlock.
@@ -4427,6 +4648,40 @@ export namespace Prisma {
      * Filter which TimeBlocks to update
      */
     where?: TimeBlockWhereInput
+    /**
+     * Limit how many TimeBlocks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TimeBlock updateManyAndReturn
+   */
+  export type TimeBlockUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TimeBlock
+     */
+    select?: TimeBlockSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TimeBlock
+     */
+    omit?: TimeBlockOmit<ExtArgs> | null
+    /**
+     * The data used to update TimeBlocks.
+     */
+    data: XOR<TimeBlockUpdateManyMutationInput, TimeBlockUncheckedUpdateManyInput>
+    /**
+     * Filter which TimeBlocks to update
+     */
+    where?: TimeBlockWhereInput
+    /**
+     * Limit how many TimeBlocks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TimeBlockIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -4489,6 +4744,10 @@ export namespace Prisma {
      * Filter which TimeBlocks to delete
      */
     where?: TimeBlockWhereInput
+    /**
+     * Limit how many TimeBlocks to delete.
+     */
+    limit?: number
   }
 
   /**
@@ -4688,6 +4947,14 @@ export namespace Prisma {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["pomodoroSession"]>
 
+  export type PomodoroSessionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    isCompleted?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pomodoroSession"]>
 
   export type PomodoroSessionSelectScalar = {
     id?: boolean
@@ -4704,6 +4971,9 @@ export namespace Prisma {
     _count?: boolean | PomodoroSessionCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PomodoroSessionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type PomodoroSessionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
 
@@ -4923,6 +5193,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends PomodoroSessionUpdateManyArgs>(args: SelectSubset<T, PomodoroSessionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PomodoroSessions and returns the data updated in the database.
+     * @param {PomodoroSessionUpdateManyAndReturnArgs} args - Arguments to update many PomodoroSessions.
+     * @example
+     * // Update many PomodoroSessions
+     * const pomodoroSession = await prisma.pomodoroSession.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PomodoroSessions and only return the `id`
+     * const pomodoroSessionWithIdOnly = await prisma.pomodoroSession.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PomodoroSessionUpdateManyAndReturnArgs>(args: SelectSubset<T, PomodoroSessionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PomodoroSessionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one PomodoroSession.
@@ -5412,6 +5712,40 @@ export namespace Prisma {
      * Filter which PomodoroSessions to update
      */
     where?: PomodoroSessionWhereInput
+    /**
+     * Limit how many PomodoroSessions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PomodoroSession updateManyAndReturn
+   */
+  export type PomodoroSessionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PomodoroSession
+     */
+    select?: PomodoroSessionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PomodoroSession
+     */
+    omit?: PomodoroSessionOmit<ExtArgs> | null
+    /**
+     * The data used to update PomodoroSessions.
+     */
+    data: XOR<PomodoroSessionUpdateManyMutationInput, PomodoroSessionUncheckedUpdateManyInput>
+    /**
+     * Filter which PomodoroSessions to update
+     */
+    where?: PomodoroSessionWhereInput
+    /**
+     * Limit how many PomodoroSessions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PomodoroSessionIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -5474,6 +5808,10 @@ export namespace Prisma {
      * Filter which PomodoroSessions to delete
      */
     where?: PomodoroSessionWhereInput
+    /**
+     * Limit how many PomodoroSessions to delete.
+     */
+    limit?: number
   }
 
   /**
@@ -5738,6 +6076,15 @@ export namespace Prisma {
     pomodoroSession?: boolean | PomodoroSessionDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["pomodoroRound"]>
 
+  export type PomodoroRoundSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    totalSeconds?: boolean
+    isCompleted?: boolean
+    pomodoroSessionId?: boolean
+    pomodoroSession?: boolean | PomodoroSessionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["pomodoroRound"]>
 
   export type PomodoroRoundSelectScalar = {
     id?: boolean
@@ -5753,6 +6100,9 @@ export namespace Prisma {
     pomodoroSession?: boolean | PomodoroSessionDefaultArgs<ExtArgs>
   }
   export type PomodoroRoundIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    pomodoroSession?: boolean | PomodoroSessionDefaultArgs<ExtArgs>
+  }
+  export type PomodoroRoundIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     pomodoroSession?: boolean | PomodoroSessionDefaultArgs<ExtArgs>
   }
 
@@ -5972,6 +6322,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends PomodoroRoundUpdateManyArgs>(args: SelectSubset<T, PomodoroRoundUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PomodoroRounds and returns the data updated in the database.
+     * @param {PomodoroRoundUpdateManyAndReturnArgs} args - Arguments to update many PomodoroRounds.
+     * @example
+     * // Update many PomodoroRounds
+     * const pomodoroRound = await prisma.pomodoroRound.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PomodoroRounds and only return the `id`
+     * const pomodoroRoundWithIdOnly = await prisma.pomodoroRound.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PomodoroRoundUpdateManyAndReturnArgs>(args: SelectSubset<T, PomodoroRoundUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PomodoroRoundPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one PomodoroRound.
@@ -6461,6 +6841,40 @@ export namespace Prisma {
      * Filter which PomodoroRounds to update
      */
     where?: PomodoroRoundWhereInput
+    /**
+     * Limit how many PomodoroRounds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PomodoroRound updateManyAndReturn
+   */
+  export type PomodoroRoundUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PomodoroRound
+     */
+    select?: PomodoroRoundSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PomodoroRound
+     */
+    omit?: PomodoroRoundOmit<ExtArgs> | null
+    /**
+     * The data used to update PomodoroRounds.
+     */
+    data: XOR<PomodoroRoundUpdateManyMutationInput, PomodoroRoundUncheckedUpdateManyInput>
+    /**
+     * Filter which PomodoroRounds to update
+     */
+    where?: PomodoroRoundWhereInput
+    /**
+     * Limit how many PomodoroRounds to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PomodoroRoundIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -6523,6 +6937,10 @@ export namespace Prisma {
      * Filter which PomodoroRounds to delete
      */
     where?: PomodoroRoundWhereInput
+    /**
+     * Limit how many PomodoroRounds to delete.
+     */
+    limit?: number
   }
 
   /**
@@ -6826,7 +7244,7 @@ export namespace Prisma {
     priority?: EnumPriorityNullableFilter<"Task"> | $Enums.Priority | null
     isCompleted?: BoolNullableFilter<"Task"> | boolean | null
     userId?: StringFilter<"Task"> | string
-    user?: XOR<UserRelationFilter, UserWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }
 
   export type TaskOrderByWithRelationInput = {
@@ -6851,7 +7269,7 @@ export namespace Prisma {
     priority?: EnumPriorityNullableFilter<"Task"> | $Enums.Priority | null
     isCompleted?: BoolNullableFilter<"Task"> | boolean | null
     userId?: StringFilter<"Task"> | string
-    user?: XOR<UserRelationFilter, UserWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }, "id">
 
   export type TaskOrderByWithAggregationInput = {
@@ -6892,7 +7310,7 @@ export namespace Prisma {
     duration?: IntFilter<"TimeBlock"> | number
     order?: IntFilter<"TimeBlock"> | number
     userId?: StringFilter<"TimeBlock"> | string
-    user?: XOR<UserRelationFilter, UserWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }
 
   export type TimeBlockOrderByWithRelationInput = {
@@ -6919,7 +7337,7 @@ export namespace Prisma {
     duration?: IntFilter<"TimeBlock"> | number
     order?: IntFilter<"TimeBlock"> | number
     userId?: StringFilter<"TimeBlock"> | string
-    user?: XOR<UserRelationFilter, UserWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }, "id">
 
   export type TimeBlockOrderByWithAggregationInput = {
@@ -6961,7 +7379,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"PomodoroSession"> | Date | string
     isCompleted?: BoolNullableFilter<"PomodoroSession"> | boolean | null
     userId?: StringFilter<"PomodoroSession"> | string
-    user?: XOR<UserRelationFilter, UserWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
     rounds?: PomodoroRoundListRelationFilter
   }
 
@@ -6984,7 +7402,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"PomodoroSession"> | Date | string
     isCompleted?: BoolNullableFilter<"PomodoroSession"> | boolean | null
     userId?: StringFilter<"PomodoroSession"> | string
-    user?: XOR<UserRelationFilter, UserWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
     rounds?: PomodoroRoundListRelationFilter
   }, "id">
 
@@ -7020,7 +7438,7 @@ export namespace Prisma {
     totalSeconds?: IntFilter<"PomodoroRound"> | number
     isCompleted?: BoolNullableFilter<"PomodoroRound"> | boolean | null
     pomodoroSessionId?: StringFilter<"PomodoroRound"> | string
-    pomodoroSession?: XOR<PomodoroSessionRelationFilter, PomodoroSessionWhereInput>
+    pomodoroSession?: XOR<PomodoroSessionScalarRelationFilter, PomodoroSessionWhereInput>
   }
 
   export type PomodoroRoundOrderByWithRelationInput = {
@@ -7043,7 +7461,7 @@ export namespace Prisma {
     totalSeconds?: IntFilter<"PomodoroRound"> | number
     isCompleted?: BoolNullableFilter<"PomodoroRound"> | boolean | null
     pomodoroSessionId?: StringFilter<"PomodoroRound"> | string
-    pomodoroSession?: XOR<PomodoroSessionRelationFilter, PomodoroSessionWhereInput>
+    pomodoroSession?: XOR<PomodoroSessionScalarRelationFilter, PomodoroSessionWhereInput>
   }, "id">
 
   export type PomodoroRoundOrderByWithAggregationInput = {
@@ -7647,7 +8065,7 @@ export namespace Prisma {
     not?: NestedBoolNullableFilter<$PrismaModel> | boolean | null
   }
 
-  export type UserRelationFilter = {
+  export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
   }
@@ -7804,7 +8222,7 @@ export namespace Prisma {
     userId?: SortOrder
   }
 
-  export type PomodoroSessionRelationFilter = {
+  export type PomodoroSessionScalarRelationFilter = {
     is?: PomodoroSessionWhereInput
     isNot?: PomodoroSessionWhereInput
   }
