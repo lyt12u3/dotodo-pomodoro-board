@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type PomodoroSettings = {
   workInterval: number; // in minutes
@@ -29,6 +30,7 @@ export const usePomodoro = () => {
 };
 
 export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
+  const { accessToken, isAuthenticated } = useAuth();
   const [settings, setSettings] = useState<PomodoroSettings>({
     workInterval: 25,
     breakInterval: 5,
@@ -39,17 +41,24 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const [isWorkInterval, setIsWorkInterval] = useState(true);
   const [currentInterval, setCurrentInterval] = useState(1);
 
-  // Load settings from localStorage
+  // Load settings from backend if авторизован
   useEffect(() => {
-    const storedSettings = localStorage.getItem("dototodo_pomodoro");
-    if (storedSettings) {
-      const parsedSettings = JSON.parse(storedSettings);
-      setSettings(parsedSettings);
-      if (!isActive) {
-        setTimeRemaining(parsedSettings.workInterval * 60);
-      }
-    }
-  }, []);
+    if (!isAuthenticated || !accessToken) return;
+    fetch(`${import.meta.env.VITE_API_URL}/api/users/settings`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && typeof data.workInterval === "number" && typeof data.breakInterval === "number") {
+          setSettings({
+            workInterval: data.workInterval,
+            breakInterval: data.breakInterval,
+          });
+          setTimeRemaining(data.workInterval * 60);
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated, accessToken]);
 
   // Save settings to localStorage
   useEffect(() => {
@@ -118,6 +127,17 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       const updated = { ...prev, ...newSettings };
       if (!isActive) {
         setTimeRemaining(updated.workInterval * 60);
+      }
+      // Если авторизован — отправляем на сервер
+      if (isAuthenticated && accessToken) {
+        fetch(`${import.meta.env.VITE_API_URL}/api/users/settings`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(newSettings),
+        }).catch(() => {});
       }
       return updated;
     });
