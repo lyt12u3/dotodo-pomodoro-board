@@ -22,13 +22,21 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  create(@Body() createTaskDto: CreateTaskDto, @Req() req: AuthenticatedRequest): Promise<Task> {
-    return this.tasksService.create(createTaskDto, req.user.id);
+  async create(@Body() createTaskDto: CreateTaskDto, @Req() req: AuthenticatedRequest): Promise<any> {
+    const task = await this.tasksService.create(createTaskDto, req.user.id);
+    return {
+      ...task,
+      title: task.name,
+    };
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest): Promise<Task[]> {
-    return this.tasksService.findAll(req.user.id);
+  async findAll(@Req() req: AuthenticatedRequest): Promise<any[]> {
+    const tasks = await this.tasksService.findAll(req.user.id);
+    return tasks.map(task => ({
+      ...task,
+      title: task.name,
+    }));
   }
 
   @Get(':id')

@@ -64,13 +64,19 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
 
   const addTask = async (task: Omit<Task, "id">) => {
     if (!accessToken) return;
+    const dto: any = {
+      title: task.title,
+    };
+    if (typeof task.completed === "boolean") {
+      dto.status = task.completed ? "COMPLETED" : "PENDING";
+    }
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(task),
+      body: JSON.stringify(dto),
     });
     if (res.ok) {
       const newTask = await res.json();
