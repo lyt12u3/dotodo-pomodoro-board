@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'passport-jwt'; // ExtractJwt is not directly used if cookieExtractor is comprehensive
+import { Strategy, ExtractJwt } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { UsersService } from '../../users/users.service'; // Updated path: src/auth/strategies -> src/users/
@@ -24,7 +24,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') { // Use 'jwt
       throw new InternalServerErrorException('JWT_SECRET environment variable is not set.');
     }
     super({
-      jwtFromRequest: cookieExtractor, // Use our custom extractor
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        cookieExtractor,
+      ]),
       ignoreExpiration: false,
       secretOrKey: jwtSecret,
     });

@@ -1,11 +1,15 @@
-
 import { useTasks } from "@/contexts/TaskContext";
+import { useAuth } from "@/contexts/AuthContext";
 import TaskItem from "@/components/tasks/TaskItem";
 import AddTaskForm from "@/components/tasks/AddTaskForm";
+import { Navigate } from "react-router-dom";
 
 const TaskList = () => {
   const { tasks } = useTasks();
-  
+  const { isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   return (
     <div className="flex-1 p-6">
       <div className="bg-[#1a1a1a] rounded-md p-4">

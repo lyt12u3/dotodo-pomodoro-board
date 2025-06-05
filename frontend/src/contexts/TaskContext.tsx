@@ -1,5 +1,5 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type Priority = "low" | "medium" | "high";
 
@@ -13,9 +13,9 @@ export type Task = {
 
 type TaskContextType = {
   tasks: Task[];
-  addTask: (task: Omit<Task, "id">) => void;
-  updateTask: (id: string, updates: Partial<Task>) => void;
-  deleteTask: (id: string) => void;
+  addTask: (task: Omit<Task, "id">) => Promise<void>;
+  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
 };
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -29,39 +29,89 @@ export const useTasks = () => {
 };
 
 export const TaskProvider = ({ children }: { children: ReactNode }) => {
+  const { accessToken, isAuthenticated } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
-  
-  // Load tasks from localStorage on initial render
-  useEffect(() => {
-    const storedTasks = localStorage.getItem("dototodo_tasks");
-    if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
-    }
-  }, []);
-  
-  // Save tasks to localStorage when they change
-  useEffect(() => {
-    if (tasks.length > 0) {
-      localStorage.setItem("dototodo_tasks", JSON.stringify(tasks));
-    }
-  }, [tasks]);
 
-  const addTask = (task: Omit<Task, "id">) => {
-    const newTask: Task = {
-      ...task,
-      id: `task_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    };
-    setTasks(prevTasks => [...prevTasks, newTask]);
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) {
+      setTasks([]);
+      return;
+    }
+    console.log("accessToken:", accessToken);
+    fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const error = await res.json().catch(() => ({}));
+          console.error("Ошибка загрузки задач:", error);
+          setTasks([]);
+          return;
+        }
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          console.error("Некорректный ответ сервера (ожидался массив):", data);
+          setTasks([]);
+        } else {
+          setTasks(data);
+        }
+      })
+      .catch(e => {
+        console.error("Ошибка сети при загрузке задач:", e);
+        setTasks([]);
+      });
+  }, [isAuthenticated, accessToken]);
+
+  const addTask = async (task: Omit<Task, "id">) => {
+    if (!accessToken) return;
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(task),
+    });
+    if (res.ok) {
+      const newTask = await res.json();
+      setTasks(prev => [...prev, newTask]);
+    } else {
+      const error = await res.json().catch(() => ({}));
+      console.error("Ошибка при добавлении задачи:", error);
+    }
   };
 
-  const updateTask = (id: string, updates: Partial<Task>) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task => (task.id === id ? { ...task, ...updates } : task))
-    );
+  const updateTask = async (id: string, updates: Partial<Task>) => {
+    if (!accessToken) return;
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(updates),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setTasks(prev => prev.map(t => (t.id === id ? updated : t)));
+    } else {
+      const error = await res.json().catch(() => ({}));
+      console.error("Ошибка при обновлении задачи:", error);
+    }
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== id));
+  const deleteTask = async (id: string) => {
+    if (!accessToken) return;
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (res.ok) {
+      setTasks(prev => prev.filter(t => t.id !== id));
+    } else {
+      const error = await res.json().catch(() => ({}));
+      console.error("Ошибка при удалении задачи:", error);
+    }
   };
 
   return (
