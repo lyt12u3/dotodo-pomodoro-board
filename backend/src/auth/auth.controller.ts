@@ -71,7 +71,12 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterAuthDto, @Res({ passthrough: true }) response: Response) {
     try {
-      const user = await this.authService.register(registerDto);
+      const { accessToken, refreshToken, user } = await this.authService.register(registerDto);
+      
+      // Set tokens in cookies
+      this._setAccessTokenCookie(response, accessToken);
+      this._setRefreshTokenCookie(response, refreshToken);
+
       return {
         message: 'Registration successful',
         user,
@@ -82,7 +87,7 @@ export class AuthController {
       } else {
         response.status(HttpStatus.BAD_REQUEST).send({ message: error.message || 'Registration failed' });
       }
-      return; 
+      return;
     }
   }
 

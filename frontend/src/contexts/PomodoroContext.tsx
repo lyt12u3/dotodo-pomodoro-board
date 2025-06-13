@@ -3,9 +3,8 @@ import { PomodoroSession, createPomodoroSession, updatePomodoroSession } from '.
 
 interface PomodoroSettings {
   workInterval: number;
-  shortBreakInterval: number;
-  longBreakInterval: number;
-  intervalsUntilLongBreak: number;
+  breakInterval: number;
+  intervalsCount: number;
 }
 
 interface PomodoroContextType {
@@ -14,25 +13,29 @@ interface PomodoroContextType {
   isBreak: boolean;
   currentInterval: number;
   settings: PomodoroSettings;
-  startTimer: () => void;
-  pauseTimer: () => void;
-  skipToNextInterval: () => void;
+  startTimer: () => Promise<void>;
+  pauseTimer: () => Promise<void>;
+  skipToNextInterval: () => Promise<void>;
   updateSettings: (settings: Partial<PomodoroSettings>) => void;
 }
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
   workInterval: 25,
-  shortBreakInterval: 5,
-  longBreakInterval: 15,
-  intervalsUntilLongBreak: 4,
+  breakInterval: 5,
+  intervalsCount: 4,
 };
 
 const PomodoroContext = createContext<PomodoroContextType | null>(null);
 
 export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
-    const saved = localStorage.getItem('pomodoroSettings');
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    try {
+      const saved = localStorage.getItem('pomodoroSettings');
+      return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS;
+    } catch (error) {
+      console.error('Failed to parse pomodoro settings:', error);
+      return DEFAULT_SETTINGS;
+    }
   });
 
   const [timeRemaining, setTimeRemaining] = useState(settings.workInterval * 60);
@@ -42,7 +45,11 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [currentSession, setCurrentSession] = useState<PomodoroSession | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+    try {
+      localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+    } catch (error) {
+      console.error('Failed to save pomodoro settings:', error);
+    }
   }, [settings]);
 
   useEffect(() => {
@@ -72,13 +79,13 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
     if (isBreak) {
       setIsBreak(false);
       setTimeRemaining(settings.workInterval * 60);
-      if (currentInterval < settings.intervalsUntilLongBreak) {
+      if (currentInterval < settings.intervalsCount) {
         setCurrentInterval(prev => prev + 1);
       }
       setIsRunning(true);
     } else {
       setIsBreak(true);
-      setTimeRemaining(settings.shortBreakInterval * 60);
+      setTimeRemaining(settings.breakInterval * 60);
       setIsRunning(true);
     }
   };
@@ -126,7 +133,7 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const updateSettings = (newSettings: Partial<PomodoroSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
     if (!isRunning) {
-      setTimeRemaining((isBreak ? newSettings.shortBreakInterval || settings.shortBreakInterval : newSettings.workInterval || settings.workInterval) * 60);
+      setTimeRemaining((isBreak ? newSettings.breakInterval || settings.breakInterval : newSettings.workInterval || settings.workInterval) * 60);
     }
   };
 

@@ -86,7 +86,7 @@ const Pomodoro = () => {
         </div>
         
         <div className="flex items-center gap-2 mb-8">
-          {Array.from({ length: settings.intervalsUntilLongBreak }).map((_, index) => (
+          {Array.from({ length: settings.intervalsCount }).map((_, index) => (
             <div 
               key={index}
               className={`h-1 w-5 rounded ${
@@ -131,7 +131,7 @@ const Pomodoro = () => {
           <div className="text-sm text-gray-400 mt-1">
             {isBreak 
               ? "Rest and recharge for the next session"
-              : `Session ${currentInterval} of ${settings.intervalsUntilLongBreak}`
+              : `Session ${currentInterval} of ${settings.intervalsCount}`
             }
           </div>
         </div>

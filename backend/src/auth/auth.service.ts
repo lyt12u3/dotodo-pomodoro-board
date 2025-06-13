@@ -87,7 +87,7 @@ export class AuthService {
     return this._generateTokens(payload, userWithoutPassword);
   }
 
-  async register(registerDto: RegisterAuthDto): Promise<Omit<User, 'password'>> {
+  async register(registerDto: RegisterAuthDto): Promise<Tokens & { user: Omit<User, 'password'> }> {
     const existingUser = await this.usersService.findOneByEmail(registerDto.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
@@ -100,7 +100,8 @@ export class AuthService {
         name: registerDto.name,
       },
     });
-    const { password, ...result } = newUser;
-    return result;
+    const { password, ...userWithoutPassword } = newUser;
+    const payload: JwtPayload = { email: userWithoutPassword.email, sub: userWithoutPassword.id, name: userWithoutPassword.name };
+    return this._generateTokens(payload, userWithoutPassword);
   }
 } 

@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, getCurrentUser, login as apiLogin, logout as apiLogout, register as apiRegister } from '../lib/api';
+import { User, getCurrentUser, login as apiLogin, logout as apiLogout, register as apiRegister, updateUserSettings } from '../lib/api';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, language?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -15,44 +16,54 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const loadUser = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
-          const userData = await getCurrentUser(true); // Skip redirect on initialization
-          setUser(userData);
-        } catch (error) {
-          console.log('[AuthContext] Failed to get current user, removing token');
-          localStorage.removeItem('accessToken');
-          setUser(null);
+      try {
+        const userData = await getCurrentUser(true);
+        setUser(userData);
+        
+        // If we're on login/register and have a user, redirect to dashboard
+        if (userData && (location.pathname === '/login' || location.pathname === '/register')) {
+          navigate('/dashboard', { replace: true });
         }
-      } else {
+      } catch (error) {
+        console.error('[AuthContext] Failed to get current user:', error);
         setUser(null);
+        
+        // If we're not on login/register and have no user, redirect to login
+        if (location.pathname !== '/login' && location.pathname !== '/register') {
+          navigate('/login', { replace: true });
+        }
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadUser();
-  }, []);
+  }, [navigate, location.pathname]);
 
   const login = async (email: string, password: string) => {
-    await apiLogin(email, password);
-    const userData = await getCurrentUser(); // Allow redirect after successful login
+    const { user: userData } = await apiLogin(email, password);
     setUser(userData);
+    navigate('/dashboard', { replace: true });
   };
 
-  const register = async (email: string, password: string, name: string) => {
-    await apiRegister(email, password, name);
-    const userData = await getCurrentUser(); // Allow redirect after successful registration
+  const register = async (email: string, password: string, name: string, language: string = 'eng') => {
+    const { user: userData } = await apiRegister(email, password, name);
+    if (language !== 'eng') {
+      await updateUserSettings({ language });
+    }
     setUser(userData);
+    navigate('/dashboard', { replace: true });
   };
 
   const logout = async () => {
     await apiLogout();
     setUser(null);
-    localStorage.removeItem('accessToken');
+    navigate('/login', { replace: true });
   };
 
   return (

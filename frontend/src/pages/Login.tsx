@@ -3,11 +3,15 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '../components/LanguageSelector';
+import logo from '../assets/logo.svg';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const MIN_PASSWORD_LENGTH = 6;
 
 const Login = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState(() => localStorage.getItem('lastEmail') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,33 +38,33 @@ const Login = () => {
     if (params.get('message') === 'auth-required' && !hasShownToast.current) {
       hasShownToast.current = true;
       toast({
-        title: 'Требуется авторизация',
-        description: 'Пожалуйста, войдите или зарегистрируйтесь для доступа к сервису.',
+        title: t('auth.login.authRequired'),
+        description: t('auth.login.authRequiredDesc'),
         variant: 'destructive',
       });
       // Очищаем URL от параметра после показа toast
       navigate('/login', { replace: true });
     }
-  }, [location.search, toast, navigate]);
+  }, [location.search, toast, navigate, t]);
 
   const validateForm = () => {
     let isValid = true;
 
     if (!email) {
-      setEmailError('Email is required');
+      setEmailError(t('auth.login.emailRequired'));
       isValid = false;
     } else if (!EMAIL_REGEX.test(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(t('auth.login.emailInvalid'));
       isValid = false;
     } else {
       setEmailError('');
     }
 
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(t('auth.login.passwordRequired'));
       isValid = false;
     } else if (password.length < MIN_PASSWORD_LENGTH) {
-      setPasswordError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      setPasswordError(t('auth.login.passwordLength', { length: MIN_PASSWORD_LENGTH }));
       isValid = false;
     } else {
       setPasswordError('');
@@ -79,14 +83,14 @@ const Login = () => {
       await login(email, password);
       localStorage.setItem('lastEmail', email);
       toast({
-        title: "Login successful",
-        description: "Welcome back!",
+        title: t('auth.login.success'),
+        description: t('auth.login.welcomeBack'),
       });
       // Don't navigate here - let useEffect handle it after user is set
     } catch (error) {
       toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
+        title: t('auth.login.failed'),
+        description: error instanceof Error ? error.message : t('auth.login.invalidCredentials'),
         variant: "destructive",
       });
     } finally {
@@ -105,19 +109,22 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
       <div className="w-full max-w-md p-8 bg-card rounded-lg shadow border animate-in fade-in slide-in-from-bottom-4">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="h-8 w-8 bg-primary rounded mr-2"></div>
+            <img src={logo} alt="Do-to-do Logo" className="h-8 w-8 mr-2" />
             <h1 className="text-2xl font-bold">Do-to-do</h1>
           </div>
-          <p className="text-muted-foreground">Sign in to your account</p>
+          <p className="text-muted-foreground">{t('auth.login.title')}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
+              {t('auth.login.email')}
             </label>
             <input
               id="email"
@@ -130,7 +137,7 @@ const Login = () => {
               className={`w-full p-3 rounded-md bg-background border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
                 emailError ? 'border-red-500' : 'border-input'
               }`}
-              placeholder="Enter your email"
+              placeholder={t('auth.login.emailPlaceholder')}
               required
               disabled={isLoading}
             />
@@ -141,7 +148,7 @@ const Login = () => {
           
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password
+              {t('auth.login.password')}
             </label>
             <div className="relative">
               <input
@@ -155,7 +162,7 @@ const Login = () => {
                 className={`w-full p-3 rounded-md bg-background border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
                   passwordError ? 'border-red-500' : 'border-input'
                 }`}
-                placeholder="Enter your password"
+                placeholder={t('auth.login.passwordPlaceholder')}
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 disabled={isLoading}
@@ -186,32 +193,27 @@ const Login = () => {
             {isLoading ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Signing in...</span>
+                <span>{t('auth.login.signingIn')}</span>
               </>
             ) : (
-              'Sign in'
+              t('auth.login.submit')
             )}
           </button>
         </form>
         
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link 
-              to="/register" 
-              className="text-primary hover:underline font-medium transition-colors"
-              tabIndex={0}
+              to="/register"
+              className="font-medium text-primary hover:underline"
             >
-              Sign up
+              {t('auth.login.signUp')}
             </Link>
           </p>
         </div>
 
-        <div className="mt-4 p-3 bg-muted rounded-md">
-          <p className="text-xs text-muted-foreground">
-            Demo: use any email and password to sign in
-          </p>
-        </div>
+        
       </div>
     </div>
   );

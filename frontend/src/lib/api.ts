@@ -11,21 +11,9 @@ async function apiFetch<T>(
   options: RequestInit = {},
   skipTokenRefresh = false
 ): Promise<T> {
-  const token = localStorage.getItem('accessToken');
-  
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
   };
-
-  if (token) {
-    defaultHeaders['Authorization'] = `Bearer ${token}`;
-  }
-
-  console.log(`[API] Calling ${endpoint}`, {
-    method: options.method || 'GET',
-    headers: defaultHeaders,
-    body: options.body ? JSON.parse(options.body as string) : undefined,
-  });
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -33,82 +21,67 @@ async function apiFetch<T>(
       ...defaultHeaders,
       ...options.headers,
     },
+    credentials: 'include', // Important for sending cookies
   });
-
-  const data = await response.json();
-
-  console.log(`[API] Response from ${endpoint}:`, {
-    status: response.status,
-    data,
-  });
-
-  if (response.status === 401 && !skipTokenRefresh) {
-    console.log('[API] Unauthorized, attempting to refresh token...');
-    // Only try to refresh if we have a token and it's not auth-related endpoints
-    if (token && !endpoint.includes('/auth/')) {
-      const refreshed = await refreshToken();
-      if (refreshed) {
-        console.log('[API] Token refreshed successfully, retrying request...');
-        // Retry the original request with new token
-        return apiFetch(endpoint, options, skipTokenRefresh);
-      }
-    }
-    
-    console.log('[API] Token refresh failed or not applicable, logging out...');
-    // If refresh failed or not applicable, logout and redirect to login
-    await logout();
-    
-    // Only redirect if we're not already on login/register pages to avoid infinite redirects
-    const currentPath = window.location.pathname;
-    if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
-      window.location.href = '/login?message=auth-required';
-    }
-    
-    throw new Error('Требуется авторизация. Пожалуйста, войдите или зарегистрируйтесь.');
-  }
 
   if (!response.ok) {
-    const error = data as ApiError;
-    console.error(`[API] Error from ${endpoint}:`, error);
-    throw new Error(error.message || 'An error occurred');
+    if (response.status === 401 && !skipTokenRefresh) {
+      // Only try to refresh if it's not auth-related endpoints
+      if (!endpoint.includes('/auth/')) {
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          // Retry the original request
+          return apiFetch(endpoint, options, true);
+        }
+      }
+      
+      // If refresh failed or not applicable, logout and redirect to login
+      await logout();
+      
+      // Only redirect if we're not already on login/register pages
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+        window.location.href = '/login?message=auth-required';
+      }
+      
+      throw new Error('Требуется авторизация. Пожалуйста, войдите или зарегистрируйтесь.');
+    }
+
+    const data = await response.json().catch(() => ({ message: 'An error occurred' }));
+    throw new Error(data.message || 'An error occurred');
   }
 
-  return data as T;
+  return response.json();
 }
 
 // Auth API
 export async function login(email: string, password: string) {
-  const response = await apiFetch<{ accessToken: string; user: User }>('/auth/login', {
+  const response = await apiFetch<{ user: User }>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
-  }, true); // Skip token refresh for login
-  localStorage.setItem('accessToken', response.accessToken);
+  }, true);
   return response;
 }
 
 export async function register(email: string, password: string, name: string) {
-  const response = await apiFetch<{ accessToken: string }>('/auth/register', {
+  const response = await apiFetch<{ user: User }>('/auth/register', {
     method: 'POST',
     body: JSON.stringify({ email, password, name }),
-  }, true); // Skip token refresh for register
-  localStorage.setItem('accessToken', response.accessToken);
+  }, true);
   return response;
 }
 
 export async function logout() {
-  try {
-    await apiFetch('/auth/logout', { method: 'POST' }, true); // Skip token refresh for logout
-  } finally {
-    localStorage.removeItem('accessToken');
-  }
+  await apiFetch('/auth/logout', {
+    method: 'POST',
+  }, true);
 }
 
 export async function refreshToken() {
   try {
-    const response = await apiFetch<{ accessToken: string }>('/auth/refresh', {
+    await apiFetch<void>('/auth/refresh', {
       method: 'POST',
-    }, true); // Skip token refresh for refresh endpoint
-    localStorage.setItem('accessToken', response.accessToken);
+    }, true);
     return true;
   } catch {
     return false;
@@ -120,15 +93,15 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  language: string;
 }
 
 export interface UserSettings {
   name?: string;
+  language?: string;
   workInterval: number;
   breakInterval: number;
-  shortBreakInterval: number;
-  longBreakInterval: number;
-  intervalsUntilLongBreak: number;
+  intervalsCount: number;
 }
 
 export async function getCurrentUser(skipRedirect = false) {
@@ -147,7 +120,7 @@ export async function updateUserSettings(settings: Partial<UserSettings>) {
 }
 
 // Tasks API
-export type TaskCategory = 'today' | 'tomorrow' | 'this-week' | 'next-week' | 'later';
+export type TaskCategory = 'today' | 'tomorrow' | 'this_week' | 'next_week' | 'later';
 
 export interface Task {
   id: string;
@@ -185,7 +158,7 @@ export async function getTask(id: string) {
 export async function createTask(task: { title: string; category: TaskCategory; completed?: boolean; priority?: 'low' | 'medium' | 'high' }) {
   console.log('[API] Creating task:', task);
   const dto = {
-    title: task.title,
+    name: task.title,
     category: task.category,
     isCompleted: task.completed,
     priority: task.priority

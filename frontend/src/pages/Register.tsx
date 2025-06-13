@@ -3,6 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '../components/LanguageSelector';
+import logo from '../assets/logo.svg';
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const MIN_PASSWORD_LENGTH = 6;
@@ -10,6 +13,7 @@ const MIN_NAME_LENGTH = 2;
 const MAX_NAME_LENGTH = 50;
 
 const Register = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,16 +41,16 @@ const Register = () => {
 
     // Validate name
     if (!name) {
-      setNameError('Name is required');
+      setNameError(t('auth.register.nameRequired'));
       isValid = false;
     } else if (name.length < MIN_NAME_LENGTH) {
-      setNameError(`Name must be at least ${MIN_NAME_LENGTH} characters`);
+      setNameError(t('auth.register.nameMinLength', { length: MIN_NAME_LENGTH }));
       isValid = false;
     } else if (name.length > MAX_NAME_LENGTH) {
-      setNameError(`Name must be less than ${MAX_NAME_LENGTH} characters`);
+      setNameError(t('auth.register.nameMaxLength', { length: MAX_NAME_LENGTH }));
       isValid = false;
     } else if (!/^[a-zA-Z\s]+$/.test(name)) {
-      setNameError('Name can only contain letters and spaces');
+      setNameError(t('auth.register.nameInvalid'));
       isValid = false;
     } else {
       setNameError('');
@@ -54,10 +58,10 @@ const Register = () => {
 
     // Validate email
     if (!email) {
-      setEmailError('Email is required');
+      setEmailError(t('auth.register.emailRequired'));
       isValid = false;
     } else if (!EMAIL_REGEX.test(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError(t('auth.register.emailInvalid'));
       isValid = false;
     } else {
       setEmailError('');
@@ -65,10 +69,10 @@ const Register = () => {
 
     // Validate password
     if (!password) {
-      setPasswordError('Password is required');
+      setPasswordError(t('auth.register.passwordRequired'));
       isValid = false;
     } else if (password.length < MIN_PASSWORD_LENGTH) {
-      setPasswordError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      setPasswordError(t('auth.register.passwordLength', { length: MIN_PASSWORD_LENGTH }));
       isValid = false;
     } else {
       setPasswordError('');
@@ -76,10 +80,10 @@ const Register = () => {
 
     // Validate confirm password
     if (!confirmPassword) {
-      setConfirmPasswordError('Please confirm your password');
+      setConfirmPasswordError(t('auth.register.confirmPasswordRequired'));
       isValid = false;
     } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
+      setConfirmPasswordError(t('auth.register.passwordsDoNotMatch'));
       isValid = false;
     } else {
       setConfirmPasswordError('');
@@ -97,14 +101,13 @@ const Register = () => {
     try {
       await register(email, password, name);
       toast({
-        title: "Registration successful",
-        description: "Welcome!",
+        title: t('auth.register.success'),
+        description: t('auth.register.welcome'),
       });
-      // Don't navigate here - let useEffect handle it after user is set
     } catch (error) {
       toast({
-        title: "Registration failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        title: t('auth.register.failed'),
+        description: error instanceof Error ? error.message : t('auth.register.error'),
         variant: "destructive",
       });
     } finally {
@@ -122,19 +125,22 @@ const Register = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
       <div className="w-full max-w-md p-8 bg-card rounded-lg shadow border animate-in fade-in slide-in-from-bottom-4">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="h-8 w-8 bg-primary rounded mr-2"></div>
+            <img src={logo} alt="Do-to-do Logo" className="h-8 w-8 mr-2" />
             <h1 className="text-2xl font-bold">Do-to-do</h1>
           </div>
-          <p className="text-muted-foreground">Create a new account</p>
+          <p className="text-muted-foreground">{t('auth.register.title')}</p>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2">
-              Name
+              {t('auth.register.name')}
             </label>
             <input
               id="name"
@@ -147,7 +153,7 @@ const Register = () => {
               className={`w-full p-3 rounded-md bg-background border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
                 nameError ? 'border-red-500' : 'border-input'
               }`}
-              placeholder="Enter your name"
+              placeholder={t('auth.register.namePlaceholder')}
               required
               minLength={MIN_NAME_LENGTH}
               maxLength={MAX_NAME_LENGTH}
@@ -160,7 +166,7 @@ const Register = () => {
           
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
+              {t('auth.register.email')}
             </label>
             <input
               id="email"
@@ -173,7 +179,7 @@ const Register = () => {
               className={`w-full p-3 rounded-md bg-background border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
                 emailError ? 'border-red-500' : 'border-input'
               }`}
-              placeholder="Enter your email"
+              placeholder={t('auth.register.emailPlaceholder')}
               required
               disabled={isLoading}
             />
@@ -184,7 +190,7 @@ const Register = () => {
           
           <div>
             <label htmlFor="password" className="block text-sm font-medium mb-2">
-              Password
+              {t('auth.register.password')}
             </label>
             <div className="relative">
               <input
@@ -198,7 +204,7 @@ const Register = () => {
                 className={`w-full p-3 rounded-md bg-background border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
                   passwordError ? 'border-red-500' : 'border-input'
                 }`}
-                placeholder="Enter your password"
+                placeholder={t('auth.register.passwordPlaceholder')}
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 disabled={isLoading}
@@ -223,7 +229,7 @@ const Register = () => {
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-              Confirm Password
+              {t('auth.register.confirmPassword')}
             </label>
             <div className="relative">
               <input
@@ -237,9 +243,8 @@ const Register = () => {
                 className={`w-full p-3 rounded-md bg-background border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-colors ${
                   confirmPasswordError ? 'border-red-500' : 'border-input'
                 }`}
-                placeholder="Confirm your password"
+                placeholder={t('auth.register.confirmPasswordPlaceholder')}
                 required
-                minLength={MIN_PASSWORD_LENGTH}
                 disabled={isLoading}
               />
               <button
@@ -268,23 +273,22 @@ const Register = () => {
             {isLoading ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Creating account...</span>
+                <span>{t('auth.register.registering')}</span>
               </>
             ) : (
-              'Sign up'
+              t('auth.register.submit')
             )}
           </button>
         </form>
         
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            Already have an account?{' '}
+            {t('auth.register.haveAccount')}{' '}
             <Link 
-              to="/login" 
-              className="text-primary hover:underline font-medium transition-colors"
-              tabIndex={0}
+              to="/login"
+              className="font-medium text-primary hover:underline"
             >
-              Sign in
+              {t('auth.register.signIn')}
             </Link>
           </p>
         </div>

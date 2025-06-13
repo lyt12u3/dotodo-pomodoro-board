@@ -1,33 +1,29 @@
-import { IsString, IsOptional, IsInt, Min, Max, Matches, IsEnum } from 'class-validator';
-
-enum Language {
-  ENG = 'eng',
-  UA = 'ua'
-}
+import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 
 export class UpdateUserSettingsDto {
-  @IsOptional()
   @IsString()
-  @Matches(/^[a-zA-Zа-яА-ЯёЁ\s-]+$/, {
-    message: 'Name can only contain letters, spaces and hyphens. Numbers and special characters are not allowed.'
-  })
+  @IsOptional()
   name?: string;
 
+  @IsString()
   @IsOptional()
-  @IsEnum(Language, {
-    message: 'Language must be either "eng" or "ua"'
-  })
-  language?: Language;
+  language?: string;
 
-  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(120)
+  @IsOptional()
   workInterval?: number;
 
-  @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(60)
+  @Max(30)
+  @IsOptional()
   breakInterval?: number;
+
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  @IsOptional()
+  intervalsCount?: number;
 } 

@@ -21,7 +21,7 @@ const Dashboard = () => {
   
   const completedTasks = tasks.filter(task => task.completed);
   const todayTasks = tasks.filter(task => task.category === 'today');
-  const weekTasks = tasks.filter(task => task.category === 'this-week' || task.category === 'next-week');
+  const weekTasks = tasks.filter(task => task.category === 'this_week' || task.category === 'next_week');
 
   const getCompletionRate = () => {
     if (tasks.length === 0) return 0;

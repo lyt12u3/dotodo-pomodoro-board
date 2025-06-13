@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTaskDto, TaskStatus } from './dto/create-task.dto';
+import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Prisma, Task } from '@prisma/client';
 
@@ -11,10 +11,10 @@ export class TasksService {
   async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     const dataToCreate: Prisma.TaskCreateInput = {
       user: { connect: { id: userId } },
-      name: createTaskDto.title,
+      name: createTaskDto.name,
       description: createTaskDto.description,
       category: createTaskDto.category,
-      isCompleted: createTaskDto.status === TaskStatus.COMPLETED,
+      isCompleted: createTaskDto.isCompleted ?? false,
       priority: createTaskDto.priority,
     };
 
@@ -50,18 +50,15 @@ export class TasksService {
 
     const dataToUpdate: Prisma.TaskUpdateInput = {};
     
-    if (updateTaskDto.title !== undefined) {
-      dataToUpdate.name = updateTaskDto.title;
+    if (updateTaskDto.name !== undefined) {
+      dataToUpdate.name = updateTaskDto.name;
     }
     
     if (updateTaskDto.description !== undefined) {
       dataToUpdate.description = updateTaskDto.description;
     }
     
-    // Handle both status and isCompleted fields
-    if (updateTaskDto.status !== undefined) {
-      dataToUpdate.isCompleted = updateTaskDto.status === TaskStatus.COMPLETED;
-    } else if (updateTaskDto.isCompleted !== undefined) {
+    if (updateTaskDto.isCompleted !== undefined) {
       dataToUpdate.isCompleted = updateTaskDto.isCompleted;
     }
     

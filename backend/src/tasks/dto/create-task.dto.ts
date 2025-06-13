@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsBoolean } from 'class-validator';
+import { Priority, TaskCategory } from '@prisma/client';
 
 // Assuming a TaskStatus enum might exist or be defined in Prisma schema
 // For now, let's define a placeholder or you can adjust it based on your actual TaskStatus enum
@@ -8,24 +9,10 @@ export enum TaskStatus {
   COMPLETED = 'COMPLETED',
 }
 
-export enum TaskCategory {
-  TODAY = 'today',
-  TOMORROW = 'tomorrow',
-  THIS_WEEK = 'this-week',
-  NEXT_WEEK = 'next-week',
-  LATER = 'later',
-}
-
-export enum TaskPriority {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-}
-
 export class CreateTaskDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  name: string;
 
   @IsString()
   @IsOptional()
@@ -39,7 +26,11 @@ export class CreateTaskDto {
   @IsNotEmpty()
   category: TaskCategory;
 
-  @IsEnum(TaskPriority)
+  @IsEnum(Priority)
   @IsOptional()
-  priority?: TaskPriority;
+  priority?: Priority;
+
+  @IsBoolean()
+  @IsOptional()
+  isCompleted?: boolean;
 } 

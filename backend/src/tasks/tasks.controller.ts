@@ -3,8 +3,8 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { Task } from '../../prisma/generated/client'; // Corrected import path
-import { Request } from 'express'; // Added import for Request type
+import { Task } from '@prisma/client';
+import { Request } from 'express';
 
 // Define a type for the authenticated request
 interface AuthenticatedRequest extends Request {
@@ -22,21 +22,13 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  async create(@Body() createTaskDto: CreateTaskDto, @Req() req: AuthenticatedRequest): Promise<any> {
-    const task = await this.tasksService.create(createTaskDto, req.user.id);
-    return {
-      ...task,
-      title: task.name,
-    };
+  create(@Body() createTaskDto: CreateTaskDto, @Req() req: AuthenticatedRequest): Promise<Task> {
+    return this.tasksService.create(createTaskDto, req.user.id);
   }
 
   @Get()
-  async findAll(@Req() req: AuthenticatedRequest): Promise<any[]> {
-    const tasks = await this.tasksService.findAll(req.user.id);
-    return tasks.map(task => ({
-      ...task,
-      title: task.name,
-    }));
+  findAll(@Req() req: AuthenticatedRequest): Promise<Task[]> {
+    return this.tasksService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -50,7 +42,6 @@ export class TasksController {
     @Body() updateTaskDto: UpdateTaskDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<Task> {
-    console.log('PATCH /tasks/:id', updateTaskDto);
     return this.tasksService.update(id, updateTaskDto, req.user.id);
   }
 

@@ -317,8 +317,8 @@ const Tasks: React.FC = () => {
 
   const todayTasks = getTasksByCategory('today');
   const tomorrowTasks = getTasksByCategory('tomorrow');
-  const thisWeekTasks = getTasksByCategory('this-week');
-  const nextWeekTasks = getTasksByCategory('next-week');
+  const thisWeekTasks = getTasksByCategory('this_week');
+  const nextWeekTasks = getTasksByCategory('next_week');
   const laterTasks = getTasksByCategory('later');
 
   return (
@@ -370,7 +370,7 @@ const Tasks: React.FC = () => {
             <TaskCategory
               title="On this week"
               tasks={thisWeekTasks}
-              category="this-week"
+              category="this_week"
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
@@ -379,7 +379,7 @@ const Tasks: React.FC = () => {
             <TaskCategory
               title="On next week"
               tasks={nextWeekTasks}
-              category="next-week"
+              category="next_week"
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
@@ -436,8 +436,8 @@ const Tasks: React.FC = () => {
             <div className="bg-card p-4 rounded-lg">
               <h3 className="font-medium mb-3">On this week</h3>
               <TaskForm 
-                category="this-week"
-                onAddTask={(text, priority) => handleAddTask(text, "this-week", priority)} 
+                category="this_week"
+                onAddTask={(text, priority) => handleAddTask(text, "this_week", priority)} 
               />
               {thisWeekTasks.map(task => (
                 <TaskItem
@@ -453,8 +453,8 @@ const Tasks: React.FC = () => {
             <div className="bg-card p-4 rounded-lg">
               <h3 className="font-medium mb-3">On next week</h3>
               <TaskForm 
-                category="next-week"
-                onAddTask={(text, priority) => handleAddTask(text, "next-week", priority)} 
+                category="next_week"
+                onAddTask={(text, priority) => handleAddTask(text, "next_week", priority)} 
               />
               {nextWeekTasks.map(task => (
                 <TaskItem
