@@ -8,6 +8,14 @@ export enum TaskStatus {
   COMPLETED = 'COMPLETED',
 }
 
+export enum TaskCategory {
+  TODAY = 'today',
+  TOMORROW = 'tomorrow',
+  THIS_WEEK = 'this-week',
+  NEXT_WEEK = 'next-week',
+  LATER = 'later',
+}
+
 export class CreateTaskDto {
   @IsString()
   @IsNotEmpty()
@@ -20,4 +28,8 @@ export class CreateTaskDto {
   @IsEnum(TaskStatus)
   @IsOptional()
   status?: TaskStatus;
+
+  @IsEnum(TaskCategory)
+  @IsNotEmpty()
+  category: TaskCategory;
 } 

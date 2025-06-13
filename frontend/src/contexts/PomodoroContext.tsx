@@ -1,166 +1,164 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { PomodoroSession, createPomodoroSession, updatePomodoroSession } from '../lib/api';
 
-type PomodoroSettings = {
-  workInterval: number; // in minutes
-  shortBreakInterval: number; // in minutes
-  longBreakInterval: number; // in minutes
+interface PomodoroSettings {
+  workInterval: number;
+  shortBreakInterval: number;
+  longBreakInterval: number;
   intervalsUntilLongBreak: number;
-};
+}
 
-type PomodoroContextType = {
-  settings: PomodoroSettings;
-  updateSettings: (settings: Partial<PomodoroSettings>) => void;
+interface PomodoroContextType {
+  timeRemaining: number;
   isRunning: boolean;
   isBreak: boolean;
-  timeRemaining: number; // in seconds
   currentInterval: number;
+  settings: PomodoroSettings;
   startTimer: () => void;
   pauseTimer: () => void;
   skipToNextInterval: () => void;
+  updateSettings: (settings: Partial<PomodoroSettings>) => void;
+}
+
+const DEFAULT_SETTINGS: PomodoroSettings = {
+  workInterval: 25,
+  shortBreakInterval: 5,
+  longBreakInterval: 15,
+  intervalsUntilLongBreak: 4,
 };
 
-const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined);
+const PomodoroContext = createContext<PomodoroContextType | null>(null);
 
-export const usePomodoro = () => {
-  const context = useContext(PomodoroContext);
-  if (!context) {
-    throw new Error("usePomodoro must be used within a PomodoroProvider");
-  }
-  return context;
-};
-
-export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
-  const { accessToken, isAuthenticated } = useAuth();
-  const [settings, setSettings] = useState<PomodoroSettings>({
-    workInterval: 25,
-    shortBreakInterval: 5,
-    longBreakInterval: 15,
-    intervalsUntilLongBreak: 4,
+export function PomodoroProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<PomodoroSettings>(() => {
+    const saved = localStorage.getItem('pomodoroSettings');
+    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
   });
+
+  const [timeRemaining, setTimeRemaining] = useState(settings.workInterval * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(settings.workInterval * 60);
   const [currentInterval, setCurrentInterval] = useState(1);
+  const [currentSession, setCurrentSession] = useState<PomodoroSession | null>(null);
 
-  // Load settings from backend if authenticated
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
-    fetch(`${import.meta.env.VITE_API_URL}/api/users/settings`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data && typeof data.workInterval === "number") {
-          setSettings({
-            workInterval: data.workInterval,
-            shortBreakInterval: data.shortBreakInterval || settings.shortBreakInterval,
-            longBreakInterval: data.longBreakInterval || settings.longBreakInterval,
-            intervalsUntilLongBreak: data.intervalsUntilLongBreak || settings.intervalsUntilLongBreak,
-          });
-          if (!isRunning) {
-            setTimeRemaining(data.workInterval * 60);
-          }
-        }
-      })
-      .catch(() => {});
-  }, [isAuthenticated, accessToken]);
-
-  // Save settings to localStorage
-  useEffect(() => {
-    localStorage.setItem("dototodo_pomodoro", JSON.stringify(settings));
+    localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
   }, [settings]);
 
-  // Timer tick
   useEffect(() => {
-    let interval: number | null = null;
-    
-    if (isRunning) {
-      interval = window.setInterval(() => {
-        setTimeRemaining(time => {
-          if (time <= 1) {
-            handleIntervalComplete();
-            return 0;
-          }
-          return time - 1;
-        });
-      }, 1000);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning]);
+    let timer: NodeJS.Timeout;
 
-  const handleIntervalComplete = () => {
-    if (!isBreak) {
-      // Work interval finished
+    if (isRunning && timeRemaining > 0) {
+      timer = setInterval(() => {
+        setTimeRemaining(prev => prev - 1);
+      }, 1000);
+    } else if (timeRemaining === 0) {
+      handleIntervalComplete();
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isRunning, timeRemaining]);
+
+  const handleIntervalComplete = async () => {
+    if (currentSession) {
+      await updatePomodoroSession(currentSession.id, {
+        endTime: new Date().toISOString(),
+        completed: true,
+      });
+    }
+
+    if (isBreak) {
+      setIsBreak(false);
+      setTimeRemaining(settings.workInterval * 60);
+      if (currentInterval < settings.intervalsUntilLongBreak) {
+        setCurrentInterval(prev => prev + 1);
+      }
+    } else {
       setIsBreak(true);
       const isLongBreak = currentInterval >= settings.intervalsUntilLongBreak;
       setTimeRemaining(
         (isLongBreak ? settings.longBreakInterval : settings.shortBreakInterval) * 60
       );
-    } else {
-      // Break finished
-      setIsBreak(false);
-      setTimeRemaining(settings.workInterval * 60);
-      if (currentInterval >= settings.intervalsUntilLongBreak) {
+      if (isLongBreak) {
         setCurrentInterval(1);
-      } else {
-        setCurrentInterval(prev => prev + 1);
+      }
+    }
+
+    setIsRunning(false);
+  };
+
+  const startTimer = async () => {
+    if (!isRunning) {
+      setIsRunning(true);
+      if (!isBreak) {
+        const session = await createPomodoroSession({
+          startTime: new Date().toISOString(),
+          endTime: new Date(Date.now() + timeRemaining * 1000).toISOString(),
+          duration: timeRemaining,
+          completed: false,
+          taskId: '', // You might want to add task selection functionality
+        });
+        setCurrentSession(session);
       }
     }
   };
 
-  const startTimer = () => {
-    setIsRunning(true);
+  const pauseTimer = async () => {
+    if (isRunning) {
+      setIsRunning(false);
+      if (currentSession) {
+        await updatePomodoroSession(currentSession.id, {
+          endTime: new Date().toISOString(),
+          completed: false,
+        });
+        setCurrentSession(null);
+      }
+    }
   };
 
-  const pauseTimer = () => {
-    setIsRunning(false);
-  };
-
-  const skipToNextInterval = () => {
-    handleIntervalComplete();
-    setIsRunning(false);
+  const skipToNextInterval = async () => {
+    if (currentSession) {
+      await updatePomodoroSession(currentSession.id, {
+        endTime: new Date().toISOString(),
+        completed: false,
+      });
+      setCurrentSession(null);
+    }
+    setTimeRemaining(0);
   };
 
   const updateSettings = (newSettings: Partial<PomodoroSettings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...newSettings };
-      if (!isRunning) {
-        setTimeRemaining(updated.workInterval * 60);
-      }
-      // If authenticated, send to server
-      if (isAuthenticated && accessToken) {
-        fetch(`${import.meta.env.VITE_API_URL}/api/users/settings`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(newSettings),
-        }).catch(() => {});
-      }
-      return updated;
-    });
+    setSettings(prev => ({ ...prev, ...newSettings }));
+    if (!isRunning) {
+      setTimeRemaining((isBreak ? newSettings.shortBreakInterval || settings.shortBreakInterval : newSettings.workInterval || settings.workInterval) * 60);
+    }
   };
 
   return (
     <PomodoroContext.Provider
       value={{
-        settings,
-        updateSettings,
+        timeRemaining,
         isRunning,
         isBreak,
-        timeRemaining,
         currentInterval,
+        settings,
         startTimer,
         pauseTimer,
         skipToNextInterval,
+        updateSettings,
       }}
     >
       {children}
     </PomodoroContext.Provider>
   );
-}; 
+}
+
+export function usePomodoro() {
+  const context = useContext(PomodoroContext);
+  if (!context) {
+    throw new Error('usePomodoro must be used within a PomodoroProvider');
+  }
+  return context;
+} 

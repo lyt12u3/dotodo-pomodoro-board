@@ -1,12 +1,12 @@
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "./components/ui/toaster";
+import { TooltipProvider } from "./components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { TaskProvider } from "@/contexts/TaskContext";
-import { PomodoroProvider } from "@/contexts/PomodoroContext";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { TimeBlockProvider } from "@/contexts/TimeBlockContext";
-import { ThemeProvider } from "@/components/theme-provider";
+import { TaskProvider } from "./contexts/TaskContext";
+import { PomodoroProvider } from "./contexts/PomodoroContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { TimeBlockProvider } from "./contexts/TimeBlockContext";
+import { UserProvider } from "./contexts/UserContext";
+import { ThemeProvider } from "./components/theme-provider";
 
 import MainLayout from "./components/AppLayout";
 import Tasks from "./pages/Tasks";
@@ -18,12 +18,10 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dasboard";
 import TimeBlocking from "./pages/TimeBlocking";
 
-const queryClient = new QueryClient();
-
 const App = () => (
   <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
     <AuthProvider>
-      <QueryClientProvider client={queryClient}>
+      <UserProvider>
         <TaskProvider>
           <PomodoroProvider>
             <TimeBlockProvider>
@@ -52,7 +50,7 @@ const App = () => (
             </TimeBlockProvider>
           </PomodoroProvider>
         </TaskProvider>
-      </QueryClientProvider>
+      </UserProvider>
     </AuthProvider>
   </ThemeProvider>
 );

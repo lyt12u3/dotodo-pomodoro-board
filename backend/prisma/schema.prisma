@@ -34,8 +34,10 @@ model Task {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   name        String
+  description String?
+  category    String
   priority    Priority?
-  isCompleted Boolean?  @default(false) @map("is_completed")
+  isCompleted Boolean?    @default(false) @map("is_completed")
 
   user   User   @relation(fields: [userId], references: [id])
   userId String @map("user_id")
@@ -92,4 +94,12 @@ enum Priority {
   low
   medium
   high
+}
+
+enum TaskCategory {
+  today
+  tomorrow
+  this_week @map("this-week")
+  next_week @map("next-week")
+  later
 }

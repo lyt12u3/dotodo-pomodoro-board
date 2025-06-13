@@ -1,153 +1,127 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { Task as ApiTask, TaskCategory, getTasks, createTask, updateTask, deleteTask as apiDeleteTask } from '../lib/api';
 
-export type Priority = "low" | "medium" | "high";
-export type TaskCategory = "today" | "tomorrow" | "this-week" | "next-week" | "later";
+export type Priority = 'low' | 'medium' | 'high';
+export type { TaskCategory };
 
-export type Task = {
-  id: string;
-  title: string;
+export interface Task extends Omit<ApiTask, 'status' | 'name'> {
   completed: boolean;
-  priority: Priority;
-  category: TaskCategory;
-  dueDate?: string;
-};
+}
 
-type TaskContextType = {
+interface TaskContextType {
   tasks: Task[];
-  addTask: (task: Omit<Task, "id">) => Promise<void>;
-  updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
-  deleteTask: (id: string) => Promise<void>;
+  addTask: (task: { title: string; category: TaskCategory; completed?: boolean }) => Promise<void>;
   toggleTaskCompleted: (id: string) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
   getTasksByCategory: (category: TaskCategory) => Task[];
-};
+}
 
-const TaskContext = createContext<TaskContextType | undefined>(undefined);
+const TaskContext = createContext<TaskContextType | null>(null);
 
-export const useTasks = () => {
-  const context = useContext(TaskContext);
-  if (!context) {
-    throw new Error("useTasks must be used within a TaskProvider");
-  }
-  return context;
-};
-
-export const TaskProvider = ({ children }: { children: ReactNode }) => {
-  const { accessToken, isAuthenticated } = useAuth();
+export function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) {
-      setTasks([]);
-      return;
-    }
-    console.log("accessToken:", accessToken);
-    fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then(async res => {
-        if (!res.ok) {
-          const error = await res.json().catch(() => ({}));
-          console.error("Error loading tasks:", error);
-          setTasks([]);
-          return;
-        }
-        const data = await res.json();
-        if (!Array.isArray(data)) {
-          console.error("Invalid server response (expected array):", data);
-          setTasks([]);
-        } else {
-          setTasks(data);
-        }
-      })
-      .catch(e => {
-        console.error("Network error while loading tasks:", e);
-        setTasks([]);
-      });
-  }, [isAuthenticated, accessToken]);
-
-  const addTask = async (task: Omit<Task, "id">) => {
-    if (!accessToken) return;
-    const dto: any = {
-      title: task.title,
-      category: task.category,
-      priority: task.priority,
-      dueDate: task.dueDate,
+    const loadTasks = async () => {
+      console.log('[TaskContext] Loading tasks...');
+      try {
+        const tasksData = await getTasks();
+        console.log('[TaskContext] Received tasks:', tasksData);
+        
+        // Convert API tasks to our internal format
+        const convertedTasks = tasksData.map(task => ({
+          ...task,
+          completed: task.status === 'COMPLETED',
+        })) as Task[];
+        
+        console.log('[TaskContext] Converted tasks:', convertedTasks);
+        setTasks(convertedTasks);
+      } catch (error) {
+        console.error('[TaskContext] Failed to load tasks:', error);
+      }
     };
-    if (typeof task.completed === "boolean") {
-      dto.status = task.completed ? "COMPLETED" : "PENDING";
-    }
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(dto),
-    });
-    if (res.ok) {
-      const newTask = await res.json();
+
+    loadTasks();
+  }, []);
+
+  const addTask = async (task: { title: string; category: TaskCategory; completed?: boolean }) => {
+    console.log('[TaskContext] Adding task:', task);
+    try {
+      const apiTask = await createTask({
+        title: task.title,
+        completed: task.completed,
+        category: task.category,
+      });
+      
+      console.log('[TaskContext] API response:', apiTask);
+      
+      const newTask: Task = {
+        ...apiTask,
+        completed: apiTask.status === 'COMPLETED',
+      };
+      
+      console.log('[TaskContext] New task:', newTask);
       setTasks(prev => [...prev, newTask]);
-    } else {
-      const error = await res.json().catch(() => ({}));
-      console.error("Error adding task:", error);
-    }
-  };
-
-  const updateTask = async (id: string, updates: Partial<Task>) => {
-    if (!accessToken) return;
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(updates),
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      setTasks(prev => prev.map(t => (t.id === id ? updated : t)));
-    } else {
-      const error = await res.json().catch(() => ({}));
-      console.error("Error updating task:", error);
-    }
-  };
-
-  const deleteTask = async (id: string) => {
-    if (!accessToken) return;
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/tasks/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (res.ok) {
-      setTasks(prev => prev.filter(t => t.id !== id));
-    } else {
-      const error = await res.json().catch(() => ({}));
-      console.error("Error deleting task:", error);
+    } catch (error) {
+      console.error('[TaskContext] Failed to add task:', error);
+      throw error;
     }
   };
 
   const toggleTaskCompleted = async (id: string) => {
+    console.log('[TaskContext] Toggling task completion:', id);
     const task = tasks.find(t => t.id === id);
-    if (task) {
-      await updateTask(id, { completed: !task.completed });
+    if (!task) {
+      console.error('[TaskContext] Task not found:', id);
+      return;
+    }
+
+    try {
+      const updatedApiTask = await updateTask(id, { status: task.completed ? 'PENDING' : 'COMPLETED' });
+      console.log('[TaskContext] API response:', updatedApiTask);
+      
+      const updatedTask: Task = {
+        ...updatedApiTask,
+        completed: updatedApiTask.status === 'COMPLETED',
+      };
+      
+      console.log('[TaskContext] Updated task:', updatedTask);
+      setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
+    } catch (error) {
+      console.error('[TaskContext] Failed to toggle task:', error);
+      throw error;
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    console.log('[TaskContext] Deleting task:', id);
+    try {
+      await apiDeleteTask(id);
+      setTasks(prev => prev.filter(t => t.id !== id));
+      console.log('[TaskContext] Task deleted:', id);
+    } catch (error) {
+      console.error('[TaskContext] Failed to delete task:', error);
+      throw error;
     }
   };
 
   const getTasksByCategory = (category: TaskCategory) => {
-    return tasks.filter(task => task.category === category);
+    const filteredTasks = tasks.filter(task => task.category === category);
+    console.log(`[TaskContext] Tasks for category ${category}:`, filteredTasks);
+    return filteredTasks;
   };
 
   return (
-    <TaskContext.Provider value={{ 
-      tasks, 
-      addTask, 
-      updateTask, 
-      deleteTask,
-      toggleTaskCompleted,
-      getTasksByCategory,
-    }}>
+    <TaskContext.Provider value={{ tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory }}>
       {children}
     </TaskContext.Provider>
   );
-};
+}
+
+export function useTasks() {
+  const context = useContext(TaskContext);
+  if (!context) {
+    throw new Error('useTasks must be used within a TaskProvider');
+  }
+  return context;
+}

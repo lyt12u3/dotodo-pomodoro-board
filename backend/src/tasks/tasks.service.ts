@@ -12,11 +12,10 @@ export class TasksService {
     const dataToCreate: Prisma.TaskCreateInput = {
       user: { connect: { id: userId } },
       name: createTaskDto.title,
+      description: createTaskDto.description,
+      category: createTaskDto.category,
+      isCompleted: createTaskDto.status === TaskStatus.COMPLETED,
     };
-
-    if (createTaskDto.status !== undefined) {
-      dataToCreate.isCompleted = createTaskDto.status === TaskStatus.COMPLETED;
-    }
 
     return this.prisma.task.create({
       data: dataToCreate,
@@ -26,6 +25,7 @@ export class TasksService {
   async findAll(userId: string): Promise<Task[]> {
     return this.prisma.task.findMany({
       where: { userId },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -51,8 +51,14 @@ export class TasksService {
     if (updateTaskDto.title !== undefined) {
       dataToUpdate.name = updateTaskDto.title;
     }
+    if (updateTaskDto.description !== undefined) {
+      dataToUpdate.description = updateTaskDto.description;
+    }
     if (updateTaskDto.status !== undefined) {
       dataToUpdate.isCompleted = updateTaskDto.status === TaskStatus.COMPLETED;
+    }
+    if (updateTaskDto.category !== undefined) {
+      dataToUpdate.category = updateTaskDto.category;
     }
 
     return this.prisma.task.update({

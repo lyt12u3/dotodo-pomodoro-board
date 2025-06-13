@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { TaskStatus } from './create-task.dto'; // Assuming TaskStatus is defined here or in Prisma
+import { TaskStatus, TaskCategory } from './create-task.dto';
 
 export class UpdateTaskDto {
   @IsString()
@@ -13,4 +13,8 @@ export class UpdateTaskDto {
   @IsEnum(TaskStatus)
   @IsOptional()
   status?: TaskStatus;
+
+  @IsEnum(TaskCategory)
+  @IsOptional()
+  category?: TaskCategory;
 } 

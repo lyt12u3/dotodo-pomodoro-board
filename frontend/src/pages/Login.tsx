@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
@@ -14,16 +14,30 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const { login, user, loading } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
 
   // Redirect to dashboard if user is already authenticated
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !authLoading) {
       navigate('/dashboard');
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
+
+  // Показываем toast, если пришли с message=auth-required
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('message') === 'auth-required') {
+      toast({
+        title: 'Требуется авторизация',
+        description: 'Пожалуйста, войдите или зарегистрируйтесь для доступа к сервису.',
+        variant: 'destructive',
+      });
+    }
+    // eslint-disable-next-line
+  }, [location.search]);
 
   const validateForm = () => {
     let isValid = true;
@@ -77,7 +91,7 @@ const Login = () => {
   };
 
   // Show loading while checking authentication
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
