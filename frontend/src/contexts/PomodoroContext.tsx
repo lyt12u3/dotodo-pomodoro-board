@@ -75,18 +75,12 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
       if (currentInterval < settings.intervalsUntilLongBreak) {
         setCurrentInterval(prev => prev + 1);
       }
+      setIsRunning(true);
     } else {
       setIsBreak(true);
-      const isLongBreak = currentInterval >= settings.intervalsUntilLongBreak;
-      setTimeRemaining(
-        (isLongBreak ? settings.longBreakInterval : settings.shortBreakInterval) * 60
-      );
-      if (isLongBreak) {
-        setCurrentInterval(1);
-      }
+      setTimeRemaining(settings.shortBreakInterval * 60);
+      setIsRunning(true);
     }
-
-    setIsRunning(false);
   };
 
   const startTimer = async () => {

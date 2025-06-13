@@ -111,13 +111,19 @@ const Pomodoro = () => {
           </button>
         </div>
         
-        <div className="mt-8 text-xl font-medium transition-all animate-in fade-in slide-in-from-bottom-2">
-          {isBreak 
-            ? (currentInterval >= settings.intervalsUntilLongBreak 
-              ? 'Long Break' 
-              : 'Short Break')
-            : 'Focus Time'
-          }
+        <div className="mt-6 text-center">
+          <div className={`text-xl font-medium ${isBreak ? 'text-green-400' : 'text-[#403085]'}`}>
+            {isBreak 
+              ? "Time to take a break! 🌟"
+              : "Focus Time"
+            }
+          </div>
+          <div className="text-sm text-gray-400 mt-1">
+            {isBreak 
+              ? "Rest and recharge for the next session"
+              : `Session ${currentInterval} of ${settings.intervalsUntilLongBreak}`
+            }
+          </div>
         </div>
 
         <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
