@@ -3,20 +3,21 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type PomodoroSettings = {
   workInterval: number; // in minutes
-  breakInterval: number; // in minutes
+  shortBreakInterval: number; // in minutes
+  longBreakInterval: number; // in minutes
+  intervalsUntilLongBreak: number;
 };
 
 type PomodoroContextType = {
   settings: PomodoroSettings;
   updateSettings: (settings: Partial<PomodoroSettings>) => void;
-  isActive: boolean;
-  isPaused: boolean;
+  isRunning: boolean;
+  isBreak: boolean;
   timeRemaining: number; // in seconds
+  currentInterval: number;
   startTimer: () => void;
   pauseTimer: () => void;
-  resetTimer: () => void;
-  isWorkInterval: boolean;
-  currentInterval: number;
+  skipToNextInterval: () => void;
 };
 
 const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined);
@@ -33,15 +34,16 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const { accessToken, isAuthenticated } = useAuth();
   const [settings, setSettings] = useState<PomodoroSettings>({
     workInterval: 25,
-    breakInterval: 5,
+    shortBreakInterval: 5,
+    longBreakInterval: 15,
+    intervalsUntilLongBreak: 4,
   });
-  const [isActive, setIsActive] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isBreak, setIsBreak] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(settings.workInterval * 60);
-  const [isWorkInterval, setIsWorkInterval] = useState(true);
   const [currentInterval, setCurrentInterval] = useState(1);
 
-  // Load settings from backend if авторизован
+  // Load settings from backend if authenticated
   useEffect(() => {
     if (!isAuthenticated || !accessToken) return;
     fetch(`${import.meta.env.VITE_API_URL}/api/users/settings`, {
@@ -49,12 +51,16 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data && typeof data.workInterval === "number" && typeof data.breakInterval === "number") {
+        if (data && typeof data.workInterval === "number") {
           setSettings({
             workInterval: data.workInterval,
-            breakInterval: data.breakInterval,
+            shortBreakInterval: data.shortBreakInterval || settings.shortBreakInterval,
+            longBreakInterval: data.longBreakInterval || settings.longBreakInterval,
+            intervalsUntilLongBreak: data.intervalsUntilLongBreak || settings.intervalsUntilLongBreak,
           });
-          setTimeRemaining(data.workInterval * 60);
+          if (!isRunning) {
+            setTimeRemaining(data.workInterval * 60);
+          }
         }
       })
       .catch(() => {});
@@ -69,7 +75,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let interval: number | null = null;
     
-    if (isActive && !isPaused) {
+    if (isRunning) {
       interval = window.setInterval(() => {
         setTimeRemaining(time => {
           if (time <= 1) {
@@ -84,51 +90,48 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, isPaused]);
+  }, [isRunning]);
 
   const handleIntervalComplete = () => {
-    if (isWorkInterval) {
+    if (!isBreak) {
       // Work interval finished
-      setIsWorkInterval(false);
-      setTimeRemaining(settings.breakInterval * 60);
+      setIsBreak(true);
+      const isLongBreak = currentInterval >= settings.intervalsUntilLongBreak;
+      setTimeRemaining(
+        (isLongBreak ? settings.longBreakInterval : settings.shortBreakInterval) * 60
+      );
     } else {
-      // Break finished, start next work interval
-      setIsWorkInterval(true);
+      // Break finished
+      setIsBreak(false);
       setTimeRemaining(settings.workInterval * 60);
-      setCurrentInterval(prev => prev + 1);
+      if (currentInterval >= settings.intervalsUntilLongBreak) {
+        setCurrentInterval(1);
+      } else {
+        setCurrentInterval(prev => prev + 1);
+      }
     }
   };
 
   const startTimer = () => {
-    if (!isActive) {
-      setIsActive(true);
-      setIsPaused(false);
-    } else if (isPaused) {
-      setIsPaused(false);
-    }
+    setIsRunning(true);
   };
 
   const pauseTimer = () => {
-    if (isActive && !isPaused) {
-      setIsPaused(true);
-    }
+    setIsRunning(false);
   };
 
-  const resetTimer = () => {
-    setIsActive(false);
-    setIsPaused(false);
-    setIsWorkInterval(true);
-    setTimeRemaining(settings.workInterval * 60);
-    setCurrentInterval(1);
+  const skipToNextInterval = () => {
+    handleIntervalComplete();
+    setIsRunning(false);
   };
 
   const updateSettings = (newSettings: Partial<PomodoroSettings>) => {
     setSettings(prev => {
       const updated = { ...prev, ...newSettings };
-      if (!isActive) {
+      if (!isRunning) {
         setTimeRemaining(updated.workInterval * 60);
       }
-      // Если авторизован — отправляем на сервер
+      // If authenticated, send to server
       if (isAuthenticated && accessToken) {
         fetch(`${import.meta.env.VITE_API_URL}/api/users/settings`, {
           method: "PATCH",
@@ -148,14 +151,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       value={{
         settings,
         updateSettings,
-        isActive,
-        isPaused,
+        isRunning,
+        isBreak,
         timeRemaining,
+        currentInterval,
         startTimer,
         pauseTimer,
-        resetTimer,
-        isWorkInterval,
-        currentInterval,
+        skipToNextInterval,
       }}
     >
       {children}

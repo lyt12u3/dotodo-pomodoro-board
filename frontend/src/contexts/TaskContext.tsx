@@ -2,13 +2,15 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useAuth } from "@/contexts/AuthContext";
 
 export type Priority = "low" | "medium" | "high";
+export type TaskCategory = "today" | "tomorrow" | "this-week" | "next-week" | "later";
 
 export type Task = {
   id: string;
   title: string;
   completed: boolean;
-  priority: Priority | null;
-  group: "today";
+  priority: Priority;
+  category: TaskCategory;
+  dueDate?: string;
 };
 
 type TaskContextType = {
@@ -16,6 +18,8 @@ type TaskContextType = {
   addTask: (task: Omit<Task, "id">) => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
+  toggleTaskCompleted: (id: string) => Promise<void>;
+  getTasksByCategory: (category: TaskCategory) => Task[];
 };
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -44,20 +48,20 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       .then(async res => {
         if (!res.ok) {
           const error = await res.json().catch(() => ({}));
-          console.error("Ошибка загрузки задач:", error);
+          console.error("Error loading tasks:", error);
           setTasks([]);
           return;
         }
         const data = await res.json();
         if (!Array.isArray(data)) {
-          console.error("Некорректный ответ сервера (ожидался массив):", data);
+          console.error("Invalid server response (expected array):", data);
           setTasks([]);
         } else {
           setTasks(data);
         }
       })
       .catch(e => {
-        console.error("Ошибка сети при загрузке задач:", e);
+        console.error("Network error while loading tasks:", e);
         setTasks([]);
       });
   }, [isAuthenticated, accessToken]);
@@ -66,6 +70,9 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     if (!accessToken) return;
     const dto: any = {
       title: task.title,
+      category: task.category,
+      priority: task.priority,
+      dueDate: task.dueDate,
     };
     if (typeof task.completed === "boolean") {
       dto.status = task.completed ? "COMPLETED" : "PENDING";
@@ -83,7 +90,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       setTasks(prev => [...prev, newTask]);
     } else {
       const error = await res.json().catch(() => ({}));
-      console.error("Ошибка при добавлении задачи:", error);
+      console.error("Error adding task:", error);
     }
   };
 
@@ -102,7 +109,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       setTasks(prev => prev.map(t => (t.id === id ? updated : t)));
     } else {
       const error = await res.json().catch(() => ({}));
-      console.error("Ошибка при обновлении задачи:", error);
+      console.error("Error updating task:", error);
     }
   };
 
@@ -116,12 +123,30 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       setTasks(prev => prev.filter(t => t.id !== id));
     } else {
       const error = await res.json().catch(() => ({}));
-      console.error("Ошибка при удалении задачи:", error);
+      console.error("Error deleting task:", error);
     }
   };
 
+  const toggleTaskCompleted = async (id: string) => {
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      await updateTask(id, { completed: !task.completed });
+    }
+  };
+
+  const getTasksByCategory = (category: TaskCategory) => {
+    return tasks.filter(task => task.category === category);
+  };
+
   return (
-    <TaskContext.Provider value={{ tasks, addTask, updateTask, deleteTask }}>
+    <TaskContext.Provider value={{ 
+      tasks, 
+      addTask, 
+      updateTask, 
+      deleteTask,
+      toggleTaskCompleted,
+      getTasksByCategory,
+    }}>
       {children}
     </TaskContext.Provider>
   );
