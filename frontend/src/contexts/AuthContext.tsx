@@ -20,11 +20,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('accessToken');
       if (token) {
         try {
-          const userData = await getCurrentUser();
+          const userData = await getCurrentUser(true); // Skip redirect on initialization
           setUser(userData);
         } catch (error) {
+          console.log('[AuthContext] Failed to get current user, removing token');
           localStorage.removeItem('accessToken');
+          setUser(null);
         }
+      } else {
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -34,19 +38,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     await apiLogin(email, password);
-    const userData = await getCurrentUser();
+    const userData = await getCurrentUser(); // Allow redirect after successful login
     setUser(userData);
   };
 
   const register = async (email: string, password: string, name: string) => {
     await apiRegister(email, password, name);
-    const userData = await getCurrentUser();
+    const userData = await getCurrentUser(); // Allow redirect after successful registration
     setUser(userData);
   };
 
   const logout = async () => {
     await apiLogout();
     setUser(null);
+    localStorage.removeItem('accessToken');
   };
 
   return (

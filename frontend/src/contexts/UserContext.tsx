@@ -16,10 +16,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const userSettings = await getUserSettings();
+        const userSettings = await getUserSettings(true); // Skip redirect on initialization
         setSettings(userSettings);
       } catch (error) {
-        console.error('Failed to load user settings:', error);
+        console.log('[UserContext] Failed to load user settings:', error);
       } finally {
         setIsLoading(false);
       }

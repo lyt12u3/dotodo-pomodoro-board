@@ -3,9 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import Sidebar from './Sidebar';
 
 const AppLayout = () => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -14,6 +14,7 @@ const AppLayout = () => {
   }
 
   if (!user) {
+    console.log('[AppLayout] No user found, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 

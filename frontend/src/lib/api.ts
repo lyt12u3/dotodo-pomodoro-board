@@ -57,7 +57,13 @@ async function apiFetch<T>(
     console.log('[API] Token refresh failed or not applicable, logging out...');
     // If refresh failed or not applicable, logout and redirect to login
     await logout();
-    window.location.href = '/login?message=auth-required';
+    
+    // Only redirect if we're not already on login/register pages to avoid infinite redirects
+    const currentPath = window.location.pathname;
+    if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+      window.location.href = '/login?message=auth-required';
+    }
+    
     throw new Error('Требуется авторизация. Пожалуйста, войдите или зарегистрируйтесь.');
   }
 
@@ -122,12 +128,12 @@ export interface UserSettings {
   // Add other settings as needed
 }
 
-export async function getCurrentUser() {
-  return apiFetch<User>('/users/me');
+export async function getCurrentUser(skipRedirect = false) {
+  return apiFetch<User>('/users/me', {}, skipRedirect);
 }
 
-export async function getUserSettings() {
-  return apiFetch<UserSettings>('/users/settings');
+export async function getUserSettings(skipRedirect = false) {
+  return apiFetch<UserSettings>('/users/settings', {}, skipRedirect);
 }
 
 export async function updateUserSettings(settings: Partial<UserSettings>) {

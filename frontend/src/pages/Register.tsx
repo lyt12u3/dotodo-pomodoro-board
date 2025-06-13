@@ -21,15 +21,16 @@ const Register = () => {
   const [passwordError, setPasswordError] = useState('');
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [nameError, setNameError] = useState('');
-  const { register, user, loading } = useAuth();
+  const { register, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user && !loading) {
-      navigate('/dashboard');
+    if (user && !authLoading) {
+      console.log('[Register] User is authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
   const validateForm = () => {
     let isValid = true;
@@ -99,7 +100,7 @@ const Register = () => {
         title: "Registration successful",
         description: "Welcome!",
       });
-      navigate('/dashboard');
+      // Don't navigate here - let useEffect handle it after user is set
     } catch (error) {
       toast({
         title: "Registration failed",
@@ -111,7 +112,7 @@ const Register = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>

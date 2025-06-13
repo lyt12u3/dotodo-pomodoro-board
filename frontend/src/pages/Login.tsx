@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
@@ -18,26 +18,30 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
+  const hasShownToast = useRef(false);
 
   // Redirect to dashboard if user is already authenticated
   useEffect(() => {
     if (user && !authLoading) {
-      navigate('/dashboard');
+      console.log('[Login] User is authenticated, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
-  // Показываем toast, если пришли с message=auth-required
+  // Показываем toast, если пришли с message=auth-required (только один раз)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('message') === 'auth-required') {
+    if (params.get('message') === 'auth-required' && !hasShownToast.current) {
+      hasShownToast.current = true;
       toast({
         title: 'Требуется авторизация',
         description: 'Пожалуйста, войдите или зарегистрируйтесь для доступа к сервису.',
         variant: 'destructive',
       });
+      // Очищаем URL от параметра после показа toast
+      navigate('/login', { replace: true });
     }
-    // eslint-disable-next-line
-  }, [location.search]);
+  }, [location.search, toast, navigate]);
 
   const validateForm = () => {
     let isValid = true;
@@ -78,7 +82,7 @@ const Login = () => {
         title: "Login successful",
         description: "Welcome back!",
       });
-      navigate('/dashboard');
+      // Don't navigate here - let useEffect handle it after user is set
     } catch (error) {
       toast({
         title: "Login failed",
