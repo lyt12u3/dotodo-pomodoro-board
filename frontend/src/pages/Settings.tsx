@@ -210,12 +210,12 @@ const Settings = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2 bg-primary text-white rounded hover:bg-primary/80 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-[#403085] hover:bg-[#403085]/90 text-[#9CA3AF] rounded transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#403085]/25 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Saving...
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#9CA3AF] border-t-transparent" />
+                <span>Saving...</span>
               </>
             ) : (
               'Save'

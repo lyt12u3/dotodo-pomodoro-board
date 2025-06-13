@@ -218,14 +218,14 @@ const TimeBlocking = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/80 flex items-center justify-center gap-2 w-full transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-[#403085] hover:bg-[#403085]/90 text-[#9CA3AF] rounded hover:bg-[#403085]/80 flex items-center justify-center gap-2 w-full transition-colors disabled:opacity-50"
             >
               {isSubmitting ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#9CA3AF] border-t-transparent" />
               ) : (
                 <>
-                  <Plus className="h-4 w-4" />
-                  Create
+                  <Plus className="h-4 w-4 text-[#9CA3AF]" />
+                  <span className="text-[#9CA3AF]">Create</span>
                 </>
               )}
             </button>

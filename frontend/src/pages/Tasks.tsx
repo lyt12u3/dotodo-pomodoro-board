@@ -45,18 +45,18 @@ const TaskForm: React.FC<{
         value={taskText}
         onChange={(e) => setTaskText(e.target.value)}
         placeholder="Add task..."
-        className="w-full p-2 rounded-md bg-secondary text-white border-gray-700 focus:outline-none focus:ring-1 focus:ring-primary"
+        className="w-full p-2 rounded-md bg-secondary text-white border-gray-700 focus:outline-none focus:ring-1 focus:ring-[#403085]"
         disabled={isSubmitting}
       />
       <button
         type="submit"
         disabled={!taskText.trim() || isSubmitting}
-        className="ml-2 p-2 rounded-md bg-primary text-white hover:bg-primary/80 disabled:opacity-50"
+        className="ml-2 p-2 rounded-md bg-[#403085] hover:bg-[#403085]/90 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#403085]/25"
       >
         {isSubmitting ? (
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#9CA3AF] border-t-transparent" />
         ) : (
-          <Plus className="h-4 w-4" />
+          <Plus className="h-5 w-5 stroke-[2.5] text-[#9CA3AF]" />
         )}
       </button>
     </form>

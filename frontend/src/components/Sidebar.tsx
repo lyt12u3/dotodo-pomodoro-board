@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, List, Timer, Clock, Settings } from 'lucide-react';
+import logo from '@/assets/logo.svg';
 
 const Sidebar: React.FC = () => {
   return (
     <div className="w-[200px] h-screen bg-sidebar fixed left-0 top-0 p-4 flex flex-col">
       <div className="flex items-center mb-8 mt-2">
-        <div className="h-6 w-6 bg-primary rounded mr-2"></div>
-        <h1 className="text-lg font-bold text-white">Do-to-do</h1>
+        <img src={logo} alt="Logo" className="h-7 w-7 mr-2" />
+        <h1 className="text-lg font-bold text-blue-200">Do-to-do</h1>
       </div>
       
       <nav className="flex flex-col space-y-2 flex-grow">

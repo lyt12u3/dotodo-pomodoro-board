@@ -71,7 +71,7 @@ const Pomodoro = () => {
       <Header title="Pomodoro timer" />
       
       <div className="flex flex-col items-center justify-center p-12">
-        <div className="text-7xl font-mono font-bold mb-6 transition-all animate-in fade-in zoom-in">
+        <div className="text-7xl font-mono font-bold mb-6">
           {formatTime(timeRemaining)}
         </div>
         
@@ -79,8 +79,8 @@ const Pomodoro = () => {
           {Array.from({ length: settings.intervalsUntilLongBreak }).map((_, index) => (
             <div 
               key={index}
-              className={`h-1 w-5 rounded transition-colors ${
-                index + 1 === currentInterval ? 'bg-primary' : 'bg-gray-700'
+              className={`h-1 w-5 rounded ${
+                index + 1 === currentInterval ? 'bg-[#403085]' : 'bg-gray-700'
               }`}
             ></div>
           ))}
@@ -90,24 +90,24 @@ const Pomodoro = () => {
           {!isRunning ? (
             <button
               onClick={startTimer}
-              className="p-3 rounded-full bg-primary hover:bg-primary/80 text-white transition-colors"
+              className="p-3 rounded-full bg-[#403085] hover:bg-[#403085]/90 transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#403085]/25"
             >
-              <Play className="h-6 w-6" />
+              <Play className="h-6 w-6 text-[#9CA3AF]" />
             </button>
           ) : (
             <button
               onClick={pauseTimer}
-              className="p-3 rounded-full bg-primary hover:bg-primary/80 text-white transition-colors"
+              className="p-3 rounded-full bg-[#403085] hover:bg-[#403085]/90 transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#403085]/25"
             >
-              <Pause className="h-6 w-6" />
+              <Pause className="h-6 w-6 text-[#9CA3AF]" />
             </button>
           )}
           
           <button
             onClick={() => setShowSkipDialog(true)}
-            className="p-3 rounded-full bg-secondary hover:bg-secondary/80 text-white transition-colors"
+            className="p-3 rounded-full bg-[#403085] hover:bg-[#403085]/90 transition-all hover:scale-105 active:scale-95 shadow-lg hover:shadow-[#403085]/25"
           >
-            <SkipForward className="h-6 w-6" />
+            <SkipForward className="h-6 w-6 text-[#9CA3AF]" />
           </button>
         </div>
         
