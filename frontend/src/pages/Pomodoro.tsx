@@ -33,7 +33,9 @@ const Pomodoro = () => {
   } = usePomodoro();
 
   const [showSkipDialog, setShowSkipDialog] = useState(false);
-  const [notificationSound] = useState(() => new Audio('/notification.mp3'));
+  const [workStartSound] = useState(() => new Audio('/work-start.mp3'));
+  const [breakStartSound] = useState(() => new Audio('/break-start.mp3'));
+  const [lastBreakState, setLastBreakState] = useState(isBreak);
 
   useEffect(() => {
     const originalTitle = document.title;
@@ -54,12 +56,20 @@ const Pomodoro = () => {
   }, [timeRemaining, isRunning, isBreak]);
 
   useEffect(() => {
-    if (timeRemaining === 0) {
-      notificationSound.play().catch(() => {
-        // Ignore errors - browser might block autoplay
-      });
+    // Play sound when transitioning between work and break states
+    if (isBreak !== lastBreakState) {
+      if (isBreak) {
+        breakStartSound.play().catch(() => {
+          // Ignore errors - browser might block autoplay
+        });
+      } else {
+        workStartSound.play().catch(() => {
+          // Ignore errors - browser might block autoplay
+        });
+      }
+      setLastBreakState(isBreak);
     }
-  }, [timeRemaining, notificationSound]);
+  }, [isBreak, lastBreakState, breakStartSound, workStartSound]);
 
   const handleSkip = () => {
     skipToNextInterval();
