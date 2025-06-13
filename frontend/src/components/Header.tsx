@@ -13,13 +13,14 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
       <h1 className="text-xl font-semibold">{title}</h1>
       <div className="flex items-center">
         <div className="text-right mr-3">
+          {user?.name && <div className="text-sm font-medium text-white">{user.name}</div>}
           <div className="text-sm text-gray-400">{user?.email}</div>
         </div>
         <button 
           onClick={logout}
           className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white"
         >
-          {user?.email.charAt(0).toUpperCase()}
+          {user?.name ? user.name.charAt(0).toUpperCase() : user?.email.charAt(0).toUpperCase()}
         </button>
       </div>
     </div>

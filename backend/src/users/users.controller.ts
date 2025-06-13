@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'; // Adjusted path
 import { Request } from 'express';
 import type { User } from '../../prisma/generated/client'; // Adjusted path
 import { UsersService } from './users.service';
+import { UpdateUserSettingsDto } from './dto/update-user-settings.dto';
 
 interface AuthenticatedUserPayload {
   id: string;
@@ -30,6 +31,7 @@ export class UsersController {
     const user = await this.usersService.findOneById(req.user.id);
     if (!user) throw new Error('User not found');
     return {
+      name: user.name,
       workInterval: user.workInterval,
       breakInterval: user.breakInterval,
     };
@@ -37,10 +39,11 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('settings')
-  async updateSettings(@Req() req: AuthenticatedRequest, @Body() body: { workInterval?: number; breakInterval?: number }) {
+  async updateSettings(@Req() req: AuthenticatedRequest, @Body() body: UpdateUserSettingsDto) {
     const updated = await this.usersService.updateUser(req.user.id, body);
     if (!updated) throw new Error('User not found');
     return {
+      name: updated.name,
       workInterval: updated.workInterval,
       breakInterval: updated.breakInterval,
     };

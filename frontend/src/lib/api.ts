@@ -78,7 +78,7 @@ async function apiFetch<T>(
 
 // Auth API
 export async function login(email: string, password: string) {
-  const response = await apiFetch<{ accessToken: string }>('/auth/login', {
+  const response = await apiFetch<{ accessToken: string; user: User }>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   }, true); // Skip token refresh for login
@@ -119,13 +119,16 @@ export async function refreshToken() {
 export interface User {
   id: string;
   email: string;
-  name: string;
+  name: string | null;
 }
 
 export interface UserSettings {
-  theme: string;
-  notifications: boolean;
-  // Add other settings as needed
+  name?: string;
+  workInterval: number;
+  breakInterval: number;
+  shortBreakInterval: number;
+  longBreakInterval: number;
+  intervalsUntilLongBreak: number;
 }
 
 export async function getCurrentUser(skipRedirect = false) {

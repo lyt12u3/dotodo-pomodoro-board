@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import AppLayout from '../components/AppLayout';
 import Header from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { usePomodoro } from '../contexts/PomodoroContext';
 import { useToast } from '../hooks/use-toast';
+import { getCurrentUser, updateUserSettings } from '../lib/api';
+import { XCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +23,13 @@ const MAX_LONG_BREAK = 60; // 1 hour
 const MAX_INTERVALS = 10;
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { settings, updateSettings } = usePomodoro();
   const { toast } = useToast();
+  const nameInputRef = useRef<HTMLInputElement>(null);
   
   const [email, setEmail] = useState(user?.email || '');
+  const [name, setName] = useState(user?.name || '');
   const [workInterval, setWorkInterval] = useState(settings.workInterval.toString());
   const [shortBreakInterval, setShortBreakInterval] = useState(settings.shortBreakInterval.toString());
   const [longBreakInterval, setLongBreakInterval] = useState(settings.longBreakInterval.toString());
@@ -39,6 +43,26 @@ const Settings = () => {
     const shortBreakMinutes = parseInt(shortBreakInterval);
     const longBreakMinutes = parseInt(longBreakInterval);
     const intervals = parseInt(intervalsUntilLongBreak);
+    
+    if (name) {
+      if (name.length > 50) {
+        toast({
+          title: "Invalid name",
+          description: "Name must be less than 50 characters",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      if (!/^[a-zA-Zа-яА-ЯёЁ\s-]+$/.test(name)) {
+        toast({
+          title: "Invalid name",
+          description: "Name can only contain letters, spaces and hyphens",
+          variant: "destructive",
+        });
+        return false;
+      }
+    }
     
     if (isNaN(workMinutes) || workMinutes <= 0 || workMinutes > MAX_WORK_INTERVAL) {
       toast({
@@ -77,6 +101,7 @@ const Settings = () => {
     }
     
     return {
+      name,
       workInterval: workMinutes,
       shortBreakInterval: shortBreakMinutes,
       longBreakInterval: longBreakMinutes,
@@ -99,7 +124,50 @@ const Settings = () => {
     
     setIsSubmitting(true);
     try {
-      await updateSettings(pendingSettings);
+      // Update user settings (name)
+      if (pendingSettings.name !== undefined) {
+        try {
+          await updateUserSettings({ name: pendingSettings.name });
+          // Refresh user data to update the name in the header
+          const userData = await getCurrentUser();
+          setUser(userData);
+        } catch (error: any) {
+          if (error.message?.includes('can only contain letters')) {
+            toast({
+              title: "Invalid Name Format",
+              description: (
+                <div className="flex items-start space-x-2">
+                  <XCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p>Your name contains invalid characters.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Please use only letters, spaces, and hyphens.
+                    </p>
+                    <p className="text-sm font-medium text-destructive">
+                      Example: "John Doe" or "Anna-Maria"
+                    </p>
+                  </div>
+                </div>
+              ),
+              variant: "destructive",
+              duration: 5000,
+            });
+            setIsSubmitting(false);
+            setShowConfirmDialog(false);
+            return;
+          }
+        }
+      }
+
+      // Update pomodoro settings
+      const pomodoroSettings = {
+        workInterval: pendingSettings.workInterval,
+        shortBreakInterval: pendingSettings.shortBreakInterval,
+        longBreakInterval: pendingSettings.longBreakInterval,
+        intervalsUntilLongBreak: pendingSettings.intervalsUntilLongBreak
+      };
+      await updateSettings(pomodoroSettings);
+
       toast({
         title: "Settings saved",
         description: "Your settings have been updated successfully.",
@@ -113,6 +181,31 @@ const Settings = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleNameChange = (value: string) => {
+    if (!value || /^[a-zA-Zа-яА-ЯёЁ\s-]*$/.test(value)) {
+      setName(value);
+    } else {
+      // Add shake animation class
+      if (nameInputRef.current) {
+        nameInputRef.current.classList.add('animate-shake');
+        // Remove the class after animation completes
+        setTimeout(() => {
+          if (nameInputRef.current) {
+            nameInputRef.current.classList.remove('animate-shake');
+          }
+        }, 500);
+      }
+      
+      // Show a small toast notification
+      toast({
+        title: "Invalid character",
+        description: "Only letters, spaces and hyphens are allowed",
+        variant: "destructive",
+        duration: 2000,
+      });
     }
   };
 
@@ -133,6 +226,24 @@ const Settings = () => {
               className="w-full p-2 rounded bg-secondary text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary"
               disabled
             />
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="name" className="block text-sm font-medium mb-1">
+              Name:
+            </label>
+            <input
+              ref={nameInputRef}
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              className="w-full p-2 rounded bg-secondary text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+              placeholder="Enter your name (letters only)"
+              maxLength={50}
+              disabled={isSubmitting}
+            />
+            <p className="mt-1 text-xs text-gray-400">Only letters, spaces and hyphens are allowed</p>
           </div>
           
           <div className="border-t border-gray-700 pt-6 mb-4">

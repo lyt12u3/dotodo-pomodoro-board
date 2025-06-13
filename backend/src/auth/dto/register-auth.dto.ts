@@ -1,4 +1,9 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+
+enum Language {
+  ENG = 'eng',
+  UA = 'ua'
+}
 
 export class RegisterAuthDto {
   @IsEmail({}, { message: 'Please provide a valid email address.' })
@@ -13,4 +18,10 @@ export class RegisterAuthDto {
   @IsString()
   @IsNotEmpty({ message: 'Name should not be empty.' })
   name?: string; // Optional based on your Prisma schema (name is String?)
+
+  @IsOptional()
+  @IsEnum(Language, {
+    message: 'Language must be either "eng" or "ua"'
+  })
+  language?: Language = Language.ENG;
 } 
