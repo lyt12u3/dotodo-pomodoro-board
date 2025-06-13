@@ -14,13 +14,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as Portal from '@radix-ui/react-portal';
 
 type ViewMode = 'list' | 'board';
 type TaskCategory = Task['category'];
 
 const TaskForm: React.FC<{ 
   category: TaskCategory;
-  onAddTask: (task: string) => void;
+  onAddTask: (task: string, priority?: 'low' | 'medium' | 'high') => void;
 }> = ({ category, onAddTask }) => {
   const [taskText, setTaskText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,7 +32,7 @@ const TaskForm: React.FC<{
     if (taskText.trim() && !isSubmitting) {
       setIsSubmitting(true);
       try {
-        await onAddTask(taskText.trim());
+        await onAddTask(taskText.trim(), 'medium');
         setTaskText('');
       } finally {
         setIsSubmitting(false);
@@ -67,7 +69,8 @@ const TaskItem: React.FC<{
   task: Task;
   onToggleComplete: (id: string) => void;
   onDelete: (id: string) => void;
-}> = ({ task, onToggleComplete, onDelete }) => {
+  onChangePriority: (id: string, priority: 'low' | 'medium' | 'high') => void;
+}> = ({ task, onToggleComplete, onDelete, onChangePriority }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -106,7 +109,9 @@ const TaskItem: React.FC<{
 
   return (
     <>
-      <div className="flex items-center justify-between p-3 rounded-md bg-secondary mb-2 group animate-in fade-in slide-in-from-left-5">
+      <div
+        className={`flex items-center justify-between p-3 rounded-md bg-secondary mb-2 group animate-in fade-in slide-in-from-left-5 transition-all duration-300 ${task.completed ? 'opacity-60 scale-95' : 'opacity-100 scale-100'}`}
+      >
         <div className="flex items-center gap-3 flex-grow">
           <button
             onClick={handleToggleComplete}
@@ -117,14 +122,49 @@ const TaskItem: React.FC<{
           >
             {task.completed && <Check className="h-3 w-3 text-white" />}
           </button>
-          <span className={task.completed ? 'line-through text-gray-500' : ''}>{task.title}</span>
+          <span className={`transition-all duration-300 ${task.completed ? 'line-through text-gray-500' : ''}`}>{task.title}</span>
         </div>
         
         <div className="flex items-center gap-2">
-          {task.dueDate && (
-            <span className="text-xs text-gray-400">{new Date(task.dueDate).toLocaleDateString()}</span>
-          )}
-          <div className={`h-2 w-2 rounded-full ${getPriorityClass(task.priority)}`}></div>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild disabled={task.completed}>
+              <button 
+                className={`flex items-center gap-1 px-2 py-1 rounded hover:bg-muted/30 focus:outline-none ${
+                  task.completed ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={task.completed}
+              >
+                <div className={`h-3 w-3 rounded-full ${getPriorityClass(task.priority)}`}></div>
+                <span className="text-xs text-gray-400">Priority</span>
+                <svg width="16" height="16" fill="none" viewBox="0 0 20 20"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+            </DropdownMenu.Trigger>
+            {!task.completed && (
+              <Portal.Root>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content 
+                    className="bg-popover p-2 rounded shadow-lg min-w-[120px]"
+                    sideOffset={5}
+                    style={{
+                      position: 'fixed',
+                      zIndex: 9999,
+                    }}
+                  >
+                    {(['low', 'medium', 'high'] as const).map((p) => (
+                      <DropdownMenu.Item
+                        key={p}
+                        onSelect={() => onChangePriority(task.id, p)}
+                        className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer hover:bg-muted/40 ${task.priority === p ? 'font-bold' : ''}`}
+                      >
+                        <div className={`h-3 w-3 rounded-full ${getPriorityClass(p)}`}></div>
+                        <span className="capitalize">{p}</span>
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </Portal.Root>
+            )}
+          </DropdownMenu.Root>
           <button 
             onClick={() => setShowDeleteDialog(true)}
             disabled={isDeleting}
@@ -167,16 +207,17 @@ const TaskCategory: React.FC<{
   title: string;
   tasks: Task[];
   category: TaskCategory;
-  onAddTask: (task: string, category: TaskCategory) => void;
+  onAddTask: (task: string, category: TaskCategory, priority?: 'low' | 'medium' | 'high') => void;
   onToggleComplete: (id: string) => void;
   onDeleteTask: (id: string) => void;
-}> = ({ title, tasks, category, onAddTask, onToggleComplete, onDeleteTask }) => {
+  onChangePriority: (id: string, priority: 'low' | 'medium' | 'high') => void;
+}> = ({ title, tasks, category, onAddTask, onToggleComplete, onDeleteTask, onChangePriority }) => {
   return (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-3">{title}</h2>
       <TaskForm 
         category={category}
-        onAddTask={(text) => onAddTask(text, category)} 
+        onAddTask={(text, priority) => onAddTask(text, category, priority)} 
       />
       {tasks.map((task) => (
         <TaskItem
@@ -184,6 +225,7 @@ const TaskCategory: React.FC<{
           task={task}
           onToggleComplete={onToggleComplete}
           onDelete={onDeleteTask}
+          onChangePriority={onChangePriority}
         />
       ))}
       {tasks.length === 0 && (
@@ -198,22 +240,21 @@ const Tasks: React.FC = () => {
     const saved = localStorage.getItem('taskViewMode');
     return (saved === 'list' || saved === 'board') ? saved : 'list';
   });
-  const { tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory } = useTasks();
+  const { tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory, updateTaskPriority } = useTasks();
   const { toast } = useToast();
 
   useEffect(() => {
     localStorage.setItem('taskViewMode', viewMode);
   }, [viewMode]);
 
-  const handleAddTask = async (text: string, category: TaskCategory) => {
+  const handleAddTask = async (text: string, category: TaskCategory, priority: 'low' | 'medium' | 'high' = 'medium') => {
     try {
       await addTask({
         title: text,
         completed: false,
-        priority: 'medium',
-        category
+        priority,
+        category,
       });
-      
       toast({
         title: "Task added",
         description: `"${text}" has been added to your tasks.`,
@@ -258,6 +299,22 @@ const Tasks: React.FC = () => {
     }
   };
 
+  const handleChangePriority = async (id: string, priority: 'low' | 'medium' | 'high') => {
+    try {
+      await updateTaskPriority(id, priority);
+      toast({
+        title: 'Priority updated',
+        description: `Priority set to ${priority}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Failed to update priority',
+        description: error instanceof Error ? error.message : 'An error occurred while updating priority.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const todayTasks = getTasksByCategory('today');
   const tomorrowTasks = getTasksByCategory('tomorrow');
   const thisWeekTasks = getTasksByCategory('this-week');
@@ -299,6 +356,7 @@ const Tasks: React.FC = () => {
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
+              onChangePriority={handleChangePriority}
             />
             <TaskCategory
               title="Tomorrow"
@@ -307,6 +365,7 @@ const Tasks: React.FC = () => {
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
+              onChangePriority={handleChangePriority}
             />
             <TaskCategory
               title="On this week"
@@ -315,6 +374,7 @@ const Tasks: React.FC = () => {
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
+              onChangePriority={handleChangePriority}
             />
             <TaskCategory
               title="On next week"
@@ -323,6 +383,7 @@ const Tasks: React.FC = () => {
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
+              onChangePriority={handleChangePriority}
             />
             <TaskCategory
               title="Later"
@@ -331,6 +392,7 @@ const Tasks: React.FC = () => {
               onAddTask={handleAddTask}
               onToggleComplete={handleToggleComplete}
               onDeleteTask={handleDeleteTask}
+              onChangePriority={handleChangePriority}
             />
           </div>
         )}
@@ -341,7 +403,7 @@ const Tasks: React.FC = () => {
               <h3 className="font-medium mb-3">Today</h3>
               <TaskForm 
                 category="today"
-                onAddTask={(text) => handleAddTask(text, 'today')} 
+                onAddTask={(text, priority) => handleAddTask(text, "today", priority)} 
               />
               {todayTasks.map(task => (
                 <TaskItem
@@ -349,6 +411,7 @@ const Tasks: React.FC = () => {
                   task={task}
                   onToggleComplete={handleToggleComplete}
                   onDelete={handleDeleteTask}
+                  onChangePriority={handleChangePriority}
                 />
               ))}
             </div>
@@ -357,7 +420,7 @@ const Tasks: React.FC = () => {
               <h3 className="font-medium mb-3">Tomorrow</h3>
               <TaskForm 
                 category="tomorrow"
-                onAddTask={(text) => handleAddTask(text, 'tomorrow')} 
+                onAddTask={(text, priority) => handleAddTask(text, "tomorrow", priority)} 
               />
               {tomorrowTasks.map(task => (
                 <TaskItem
@@ -365,6 +428,7 @@ const Tasks: React.FC = () => {
                   task={task}
                   onToggleComplete={handleToggleComplete}
                   onDelete={handleDeleteTask}
+                  onChangePriority={handleChangePriority}
                 />
               ))}
             </div>
@@ -373,7 +437,7 @@ const Tasks: React.FC = () => {
               <h3 className="font-medium mb-3">On this week</h3>
               <TaskForm 
                 category="this-week"
-                onAddTask={(text) => handleAddTask(text, 'this-week')} 
+                onAddTask={(text, priority) => handleAddTask(text, "this-week", priority)} 
               />
               {thisWeekTasks.map(task => (
                 <TaskItem
@@ -381,6 +445,7 @@ const Tasks: React.FC = () => {
                   task={task}
                   onToggleComplete={handleToggleComplete}
                   onDelete={handleDeleteTask}
+                  onChangePriority={handleChangePriority}
                 />
               ))}
             </div>
@@ -389,7 +454,7 @@ const Tasks: React.FC = () => {
               <h3 className="font-medium mb-3">On next week</h3>
               <TaskForm 
                 category="next-week"
-                onAddTask={(text) => handleAddTask(text, 'next-week')} 
+                onAddTask={(text, priority) => handleAddTask(text, "next-week", priority)} 
               />
               {nextWeekTasks.map(task => (
                 <TaskItem
@@ -397,6 +462,7 @@ const Tasks: React.FC = () => {
                   task={task}
                   onToggleComplete={handleToggleComplete}
                   onDelete={handleDeleteTask}
+                  onChangePriority={handleChangePriority}
                 />
               ))}
             </div>
@@ -405,7 +471,7 @@ const Tasks: React.FC = () => {
               <h3 className="font-medium mb-3">Later</h3>
               <TaskForm 
                 category="later"
-                onAddTask={(text) => handleAddTask(text, 'later')} 
+                onAddTask={(text, priority) => handleAddTask(text, "later", priority)} 
               />
               {laterTasks.map(task => (
                 <TaskItem
@@ -413,6 +479,7 @@ const Tasks: React.FC = () => {
                   task={task}
                   onToggleComplete={handleToggleComplete}
                   onDelete={handleDeleteTask}
+                  onChangePriority={handleChangePriority}
                 />
               ))}
             </div>

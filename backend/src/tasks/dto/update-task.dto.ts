@@ -1,5 +1,11 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
 import { TaskStatus, TaskCategory } from './create-task.dto';
+
+export enum TaskPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
 
 export class UpdateTaskDto {
   @IsString()
@@ -14,7 +20,15 @@ export class UpdateTaskDto {
   @IsOptional()
   status?: TaskStatus;
 
+  @IsBoolean()
+  @IsOptional()
+  isCompleted?: boolean;
+
   @IsEnum(TaskCategory)
   @IsOptional()
   category?: TaskCategory;
+
+  @IsEnum(TaskPriority)
+  @IsOptional()
+  priority?: TaskPriority;
 } 

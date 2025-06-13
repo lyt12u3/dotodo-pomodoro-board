@@ -6,14 +6,17 @@ export type { TaskCategory };
 
 export interface Task extends Omit<ApiTask, 'status' | 'name'> {
   completed: boolean;
+  title: string;
+  priority?: 'low' | 'medium' | 'high';
 }
 
 interface TaskContextType {
   tasks: Task[];
-  addTask: (task: { title: string; category: TaskCategory; completed?: boolean }) => Promise<void>;
+  addTask: (task: { title: string; category: TaskCategory; completed?: boolean; priority?: 'low' | 'medium' | 'high' }) => Promise<void>;
   toggleTaskCompleted: (id: string) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   getTasksByCategory: (category: TaskCategory) => Task[];
+  updateTaskPriority: (id: string, priority: Priority) => Promise<void>;
 }
 
 const TaskContext = createContext<TaskContextType | null>(null);
@@ -44,13 +47,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     loadTasks();
   }, []);
 
-  const addTask = async (task: { title: string; category: TaskCategory; completed?: boolean }) => {
+  const addTask = async (task: { title: string; category: TaskCategory; completed?: boolean; priority?: 'low' | 'medium' | 'high' }) => {
     console.log('[TaskContext] Adding task:', task);
     try {
       const apiTask = await createTask({
         title: task.title,
         completed: task.completed,
         category: task.category,
+        priority: task.priority,
       });
       
       console.log('[TaskContext] API response:', apiTask);
@@ -58,6 +62,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const newTask: Task = {
         ...apiTask,
         completed: apiTask.status === 'COMPLETED',
+        title: apiTask.name,
       };
       
       console.log('[TaskContext] New task:', newTask);
@@ -77,16 +82,17 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const updatedApiTask = await updateTask(id, { status: task.completed ? 'PENDING' : 'COMPLETED' });
+      console.log('[TaskContext] Current task state:', task);
+      const updatedApiTask = await updateTask(id, { 
+        status: task.completed ? 'PENDING' : 'COMPLETED' 
+      });
       console.log('[TaskContext] API response:', updatedApiTask);
-      
-      const updatedTask: Task = {
-        ...updatedApiTask,
-        completed: updatedApiTask.status === 'COMPLETED',
-      };
-      
-      console.log('[TaskContext] Updated task:', updatedTask);
-      setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
+
+      setTasks(prev => prev.map(t => 
+        t.id === id 
+          ? { ...t, completed: !t.completed }
+          : t
+      ));
     } catch (error) {
       console.error('[TaskContext] Failed to toggle task:', error);
       throw error;
@@ -111,8 +117,23 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     return filteredTasks;
   };
 
+  const updateTaskPriority = async (id: string, priority: Priority) => {
+    try {
+      const updatedApiTask = await updateTask(id, { priority } as any);
+      const updatedTask: Task = {
+        ...updatedApiTask,
+        completed: updatedApiTask.status === 'COMPLETED',
+        title: updatedApiTask.name,
+      };
+      setTasks(prev => prev.map(t => t.id === id ? updatedTask : t));
+    } catch (error) {
+      console.error('[TaskContext] Failed to update priority:', error);
+      throw error;
+    }
+  };
+
   return (
-    <TaskContext.Provider value={{ tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory }}>
+    <TaskContext.Provider value={{ tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory, updateTaskPriority }}>
       {children}
     </TaskContext.Provider>
   );

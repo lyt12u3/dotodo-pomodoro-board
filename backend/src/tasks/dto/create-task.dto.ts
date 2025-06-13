@@ -16,6 +16,12 @@ export enum TaskCategory {
   LATER = 'later',
 }
 
+export enum TaskPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
 export class CreateTaskDto {
   @IsString()
   @IsNotEmpty()
@@ -32,4 +38,8 @@ export class CreateTaskDto {
   @IsEnum(TaskCategory)
   @IsNotEmpty()
   category: TaskCategory;
+
+  @IsEnum(TaskPriority)
+  @IsOptional()
+  priority?: TaskPriority;
 } 

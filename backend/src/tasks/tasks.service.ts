@@ -15,6 +15,7 @@ export class TasksService {
       description: createTaskDto.description,
       category: createTaskDto.category,
       isCompleted: createTaskDto.status === TaskStatus.COMPLETED,
+      priority: createTaskDto.priority,
     };
 
     return this.prisma.task.create({
@@ -48,19 +49,32 @@ export class TasksService {
     await this.findOne(id, userId);
 
     const dataToUpdate: Prisma.TaskUpdateInput = {};
+    
     if (updateTaskDto.title !== undefined) {
       dataToUpdate.name = updateTaskDto.title;
     }
+    
     if (updateTaskDto.description !== undefined) {
       dataToUpdate.description = updateTaskDto.description;
     }
+    
+    // Handle both status and isCompleted fields
     if (updateTaskDto.status !== undefined) {
       dataToUpdate.isCompleted = updateTaskDto.status === TaskStatus.COMPLETED;
+    } else if (updateTaskDto.isCompleted !== undefined) {
+      dataToUpdate.isCompleted = updateTaskDto.isCompleted;
     }
+    
     if (updateTaskDto.category !== undefined) {
       dataToUpdate.category = updateTaskDto.category;
     }
+    
+    if (updateTaskDto.priority !== undefined) {
+      dataToUpdate.priority = updateTaskDto.priority;
+    }
 
+    console.log('Updating task with data:', dataToUpdate);
+    
     return this.prisma.task.update({
       where: { id },
       data: dataToUpdate,

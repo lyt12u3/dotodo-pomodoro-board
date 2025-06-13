@@ -152,60 +152,78 @@ export interface Task {
   name: string;
   description?: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  isCompleted?: boolean;
   category: TaskCategory;
   createdAt: string;
   updatedAt: string;
+  priority?: 'low' | 'medium' | 'high';
+}
+
+// Transform backend task to frontend format
+function transformTaskResponse(task: any): Task {
+  return {
+    ...task,
+    title: task.name,
+    status: task.isCompleted ? 'COMPLETED' : 'PENDING'
+  };
 }
 
 export async function getTasks() {
   console.log('[API] Getting tasks...');
   const tasks = await apiFetch<Task[]>('/tasks');
-  return tasks.map(task => ({
-    ...task,
-    title: task.name,
-  }));
+  return tasks.map(transformTaskResponse);
 }
 
 export async function getTask(id: string) {
-  return apiFetch<Task>(`/tasks/${id}`);
+  const task = await apiFetch<Task>(`/tasks/${id}`);
+  return transformTaskResponse(task);
 }
 
-export async function createTask(task: { title: string; category: TaskCategory; completed?: boolean }) {
+export async function createTask(task: { title: string; category: TaskCategory; completed?: boolean; priority?: 'low' | 'medium' | 'high' }) {
   console.log('[API] Creating task:', task);
   const dto = {
     title: task.title,
     category: task.category,
-    status: task.completed ? 'COMPLETED' : 'PENDING',
+    isCompleted: task.completed,
+    priority: task.priority
   };
+  
   console.log('[API] Task DTO:', dto);
   const response = await apiFetch<Task>('/tasks', {
     method: 'POST',
     body: JSON.stringify(dto),
   });
-  return {
-    ...response,
-    title: response.name,
-  };
+  
+  return transformTaskResponse(response);
 }
 
 export async function updateTask(id: string, task: Partial<Task>) {
-  const dto: any = { ...task };
+  console.log('[API] Updating task:', { id, task });
+  const dto: any = {};
+  
   if ('title' in task) {
     dto.title = task.title;
-    delete dto.name;
   }
-  if ('completed' in task) {
-    dto.status = task.completed ? 'COMPLETED' : 'PENDING';
-    delete dto.completed;
+  
+  if ('status' in task) {
+    dto.isCompleted = task.status === 'COMPLETED';
   }
+
+  if ('priority' in task) {
+    dto.priority = task.priority;
+  }
+
+  if ('category' in task) {
+    dto.category = task.category;
+  }
+  
+  console.log('[API] Task DTO to send:', dto);
   const response = await apiFetch<Task>(`/tasks/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(dto),
   });
-  return {
-    ...response,
-    title: response.name,
-  };
+  
+  return transformTaskResponse(response);
 }
 
 export async function deleteTask(id: string) {

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -40,21 +40,22 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest): Promise<Task> {
+  findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest): Promise<Task> {
     return this.tasksService.findOne(id, req.user.id);
   }
 
   @Patch(':id')
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateTaskDto: UpdateTaskDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<Task> {
+    console.log('PATCH /tasks/:id', updateTaskDto);
     return this.tasksService.update(id, updateTaskDto, req.user.id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthenticatedRequest): Promise<Task> {
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest): Promise<Task> {
     return this.tasksService.remove(id, req.user.id);
   }
 } 
