@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Task as ApiTask, TaskCategory, getTasks, createTask, updateTask, deleteTask as apiDeleteTask } from '../lib/api';
 
 export type Priority = 'low' | 'medium' | 'high';
@@ -10,6 +10,8 @@ export interface Task extends Omit<ApiTask, 'status' | 'name'> {
   priority?: 'low' | 'medium' | 'high';
 }
 
+type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
+
 interface TaskContextType {
   tasks: Task[];
   addTask: (task: { title: string; category: TaskCategory; completed?: boolean; priority?: 'low' | 'medium' | 'high' }) => Promise<void>;
@@ -17,6 +19,8 @@ interface TaskContextType {
   deleteTask: (id: string) => Promise<void>;
   getTasksByCategory: (category: TaskCategory) => Task[];
   updateTaskPriority: (id: string, priority: Priority) => Promise<void>;
+  moveTask: (taskId: string, newStatus: TaskStatus) => void;
+  removeTask: (taskId: string) => void;
 }
 
 const TaskContext = createContext<TaskContextType | null>(null);
@@ -132,8 +136,18 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const moveTask = (taskId: string, newStatus: TaskStatus) => {
+    setTasks(tasks.map(task =>
+      task.id === taskId ? { ...task, status: newStatus } : task
+    ));
+  };
+
+  const removeTask = (taskId: string) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
+  };
+
   return (
-    <TaskContext.Provider value={{ tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory, updateTaskPriority }}>
+    <TaskContext.Provider value={{ tasks, addTask, toggleTaskCompleted, deleteTask, getTasksByCategory, updateTaskPriority, moveTask, removeTask }}>
       {children}
     </TaskContext.Provider>
   );

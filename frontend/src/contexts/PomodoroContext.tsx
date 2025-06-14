@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { PomodoroSession, createPomodoroSession, updatePomodoroSession } from '../lib/api';
 
 interface PomodoroSettings {
@@ -17,6 +17,10 @@ interface PomodoroContextType {
   pauseTimer: () => Promise<void>;
   skipToNextInterval: () => Promise<void>;
   updateSettings: (settings: Partial<PomodoroSettings>) => void;
+  workTime: number;
+  breakTime: number;
+  setWorkTime: (time: number) => void;
+  setBreakTime: (time: number) => void;
 }
 
 const DEFAULT_SETTINGS: PomodoroSettings = {
@@ -27,7 +31,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
 
 const PomodoroContext = createContext<PomodoroContextType | null>(null);
 
-export function PomodoroProvider({ children }: { children: ReactNode }) {
+export const PomodoroProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
     try {
       const saved = localStorage.getItem('pomodoroSettings');
@@ -43,6 +47,8 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   const [isBreak, setIsBreak] = useState(false);
   const [currentInterval, setCurrentInterval] = useState(1);
   const [currentSession, setCurrentSession] = useState<PomodoroSession | null>(null);
+  const [workTime, setWorkTime] = useState(settings.workInterval * 60);
+  const [breakTime, setBreakTime] = useState(settings.breakInterval * 60);
 
   useEffect(() => {
     try {
@@ -149,17 +155,21 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
         pauseTimer,
         skipToNextInterval,
         updateSettings,
+        workTime,
+        breakTime,
+        setWorkTime,
+        setBreakTime,
       }}
     >
       {children}
     </PomodoroContext.Provider>
   );
-}
+};
 
-export function usePomodoro() {
+export const usePomodoro = () => {
   const context = useContext(PomodoroContext);
   if (!context) {
     throw new Error('usePomodoro must be used within a PomodoroProvider');
   }
   return context;
-} 
+}; 
