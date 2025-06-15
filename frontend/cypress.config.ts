@@ -2,15 +2,15 @@ import { defineConfig } from 'cypress';
 
 export default defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:5173',
-    supportFile: 'cypress/support/e2e.ts',
-    specPattern: 'src/__tests__/e2e/**/*.cy.{js,jsx,ts,tsx}',
-    video: false,
-    screenshotOnRunFailure: true,
-    defaultCommandTimeout: 10000,
+    baseUrl: 'http://localhost:8080',
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      // We'll temporarily disable code coverage for this test
+      return config;
     },
+    experimentalStudio: true,
+    defaultCommandTimeout: 10000,
+    viewportWidth: 1280,
+    viewportHeight: 720,
   },
   component: {
     devServer: {
@@ -18,6 +18,4 @@ export default defineConfig({
       bundler: 'vite',
     },
   },
-  viewportWidth: 1280,
-  viewportHeight: 720,
 }); 

@@ -1,61 +1,53 @@
-import { Task, ValidationResult, TaskStatus } from '../types';
-import DOMPurify from 'dompurify';
+type TaskPriority = 'high' | 'medium' | 'low';
+type TaskCategory = 'work' | 'personal' | 'shopping' | 'health' | 'other';
 
-const VALID_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
-
-export function validateTask(task: Task): ValidationResult {
-  const errors: string[] = [];
-  let sanitizedTask: Task | undefined;
-
-  // Validate title
-  if (!task.title.trim()) {
-    errors.push('Title is required');
-  } else if (task.title.length > 100) {
-    errors.push('Title must be less than 100 characters');
+/**
+ * Validates task input data
+ * @param text - The task text
+ * @param priority - Optional task priority
+ * @param dueDate - Optional task due date
+ * @param category - Optional task category
+ * @returns boolean indicating if the input is valid
+ */
+export function validateTaskInput(
+  text: string | null | undefined,
+  priority?: string,
+  dueDate?: Date | null,
+  category?: string
+): boolean {
+  // Validate text
+  if (!text || typeof text !== 'string') {
+    return false;
   }
 
-  // Validate pomodoro counts
-  if (task.estimatedPomodoros <= 0) {
-    errors.push('Estimated pomodoros must be greater than 0');
+  const trimmedText = text.trim();
+  if (trimmedText.length === 0 || trimmedText.length > 255) {
+    return false;
   }
 
-  if (task.completedPomodoros < 0) {
-    errors.push('Completed pomodoros cannot be negative');
-  }
-
-  if (task.completedPomodoros > task.estimatedPomodoros) {
-    errors.push('Completed pomodoros cannot exceed estimated pomodoros');
-  }
-
-  // Validate status
-  if (!VALID_STATUSES.includes(task.status)) {
-    errors.push('Invalid task status');
-  }
-
-  // Validate date
-  try {
-    const date = new Date(task.createdAt);
-    if (isNaN(date.getTime())) {
-      throw new Error('Invalid date');
+  // Validate priority if provided
+  if (priority !== undefined) {
+    const validPriorities: TaskPriority[] = ['high', 'medium', 'low'];
+    if (!validPriorities.includes(priority as TaskPriority)) {
+      return false;
     }
-  } catch {
-    errors.push('Invalid date format');
   }
 
-  // Sanitize description if task is otherwise valid
-  if (errors.length === 0) {
-    sanitizedTask = {
-      ...task,
-      description: DOMPurify.sanitize(task.description, {
-        ALLOWED_TAGS: [], // Strip all HTML
-        ALLOWED_ATTR: [] // Strip all attributes
-      })
-    };
+  // Validate due date if provided
+  if (dueDate) {
+    const now = new Date();
+    if (dueDate < now) {
+      return false;
+    }
   }
 
-  return {
-    isValid: errors.length === 0,
-    errors,
-    sanitizedTask
-  };
+  // Validate category if provided
+  if (category !== undefined) {
+    const validCategories: TaskCategory[] = ['work', 'personal', 'shopping', 'health', 'other'];
+    if (!validCategories.includes(category as TaskCategory)) {
+      return false;
+    }
+  }
+
+  return true;
 } 

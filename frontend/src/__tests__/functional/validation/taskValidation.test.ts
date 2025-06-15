@@ -1,132 +1,52 @@
-import { validateTask } from '../../../utils/validation';
-import { Task } from '../../../types';
+import { validateTaskInput } from '../../../utils/validation';
 
-describe('Task Validation', () => {
-  it('should validate a valid task', () => {
-    const validTask: Task = {
-      id: '1',
-      title: 'Valid Task',
-      description: 'This is a valid task',
-      estimatedPomodoros: 3,
-      completedPomodoros: 0,
-      status: 'todo',
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(validTask);
-    expect(result.isValid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+describe('Task validation', () => {
+  it('should reject empty task', () => {
+    expect(validateTaskInput('')).toBe(false);
+    expect(validateTaskInput('   ')).toBe(false);
   });
 
-  it('should reject task with empty title', () => {
-    const invalidTask: Task = {
-      id: '1',
-      title: '',
-      description: 'Description',
-      estimatedPomodoros: 3,
-      completedPomodoros: 0,
-      status: 'todo',
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(invalidTask);
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain('Title is required');
+  it('should allow valid task text', () => {
+    expect(validateTaskInput('Do homework')).toBe(true);
+    expect(validateTaskInput('Buy groceries')).toBe(true);
+    expect(validateTaskInput('Call mom')).toBe(true);
   });
 
-  it('should reject task with too long title', () => {
-    const invalidTask: Task = {
-      id: '1',
-      title: 'a'.repeat(101), // 101 characters
-      description: 'Description',
-      estimatedPomodoros: 3,
-      completedPomodoros: 0,
-      status: 'todo',
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(invalidTask);
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain('Title must be less than 100 characters');
+  it('should reject very long tasks', () => {
+    const longTask = 'A'.repeat(300);
+    expect(validateTaskInput(longTask)).toBe(false);
   });
 
-  it('should reject task with invalid pomodoro count', () => {
-    const invalidTask: Task = {
-      id: '1',
-      title: 'Task',
-      description: 'Description',
-      estimatedPomodoros: 0, // Invalid: must be > 0
-      completedPomodoros: 0,
-      status: 'todo',
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(invalidTask);
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain('Estimated pomodoros must be greater than 0');
+  it('should handle special characters', () => {
+    expect(validateTaskInput('Task with @#$%')).toBe(true);
+    expect(validateTaskInput('Task with emoji 🎯')).toBe(true);
   });
 
-  it('should reject task with completed pomodoros greater than estimated', () => {
-    const invalidTask: Task = {
-      id: '1',
-      title: 'Task',
-      description: 'Description',
-      estimatedPomodoros: 2,
-      completedPomodoros: 3, // Invalid: more than estimated
-      status: 'todo',
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(invalidTask);
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain('Completed pomodoros cannot exceed estimated pomodoros');
-  });
-
-  it('should reject task with invalid status', () => {
-    const invalidTask: Task = {
-      id: '1',
-      title: 'Task',
-      description: 'Description',
-      estimatedPomodoros: 2,
-      completedPomodoros: 0,
-      status: 'invalid-status' as any,
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(invalidTask);
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain('Invalid task status');
-  });
-
-  it('should sanitize task description', () => {
-    const taskWithHtml: Task = {
-      id: '1',
-      title: 'Task',
-      description: '<script>alert("xss")</script>Description with HTML',
-      estimatedPomodoros: 2,
-      completedPomodoros: 0,
-      status: 'todo',
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = validateTask(taskWithHtml);
-    expect(result.isValid).toBe(true);
-    expect(result.sanitizedTask?.description).toBe('Description with HTML');
+  it('should validate task priority', () => {
+    expect(validateTaskInput('Task', 'high')).toBe(true);
+    expect(validateTaskInput('Task', 'medium')).toBe(true);
+    expect(validateTaskInput('Task', 'low')).toBe(true);
+    expect(validateTaskInput('Task', 'invalid')).toBe(false);
   });
 
   it('should validate task dates', () => {
-    const taskWithInvalidDate: Task = {
-      id: '1',
-      title: 'Task',
-      description: 'Description',
-      estimatedPomodoros: 2,
-      completedPomodoros: 0,
-      status: 'todo',
-      createdAt: 'invalid-date',
-    };
+    const pastDate = new Date(2020, 0, 1);
+    const futureDate = new Date(2025, 0, 1);
+    const today = new Date();
 
-    const result = validateTask(taskWithInvalidDate);
-    expect(result.isValid).toBe(false);
-    expect(result.errors).toContain('Invalid date format');
+    expect(validateTaskInput('Task', 'low', pastDate)).toBe(false);
+    expect(validateTaskInput('Task', 'low', futureDate)).toBe(true);
+    expect(validateTaskInput('Task', 'low', today)).toBe(true);
+  });
+
+  it('should handle null and undefined inputs', () => {
+    expect(validateTaskInput(null)).toBe(false);
+    expect(validateTaskInput(undefined)).toBe(false);
+  });
+
+  it('should validate task categories', () => {
+    expect(validateTaskInput('Task', 'low', null, 'work')).toBe(true);
+    expect(validateTaskInput('Task', 'low', null, 'personal')).toBe(true);
+    expect(validateTaskInput('Task', 'low', null, 'invalid')).toBe(false);
   });
 }); 

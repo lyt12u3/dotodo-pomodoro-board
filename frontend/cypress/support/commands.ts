@@ -1,5 +1,12 @@
 /// <reference types="cypress" />
 
+declare namespace Cypress {
+  interface Chainable<Subject = any> {
+    drag(targetSelector: string): Chainable<Element>
+    login(): Chainable<void>
+  }
+}
+
 // Add drag and drop support
 Cypress.Commands.add('drag', { prevSubject: 'element' }, (subject, targetSelector) => {
   const dataTransfer = new DataTransfer();
@@ -19,34 +26,17 @@ Cypress.Commands.add('drag', { prevSubject: 'element' }, (subject, targetSelecto
   cy.wrap(subject).trigger('dragend');
 });
 
-declare global {
-  namespace Cypress {
-    interface Chainable {
-      drag(targetSelector: string): Chainable<Element>
-      login(): Chainable<void>;
-      createTestTask(title: string): Chainable<void>;
-    }
-  }
-}
-
-// Command to handle login
+// Add login command
 Cypress.Commands.add('login', () => {
-  // Mock the authentication
-  cy.window().then((window) => {
-    window.localStorage.setItem('auth_token', 'test_token');
-    window.localStorage.setItem('user', JSON.stringify({
-      id: 'test_user',
-      email: 'test@example.com',
-      name: 'Test User'
-    }));
+  cy.request({
+    method: 'POST',
+    url: 'http://localhost:3000/login',
+    body: {
+      email: 'asdw455@gamil.com',
+      password: '12345HHH'
+    }
+  }).then((response) => {
+    // Store the token in localStorage
+    window.localStorage.setItem('token', response.body.token);
   });
-});
-
-// Command to create a test task
-Cypress.Commands.add('createTestTask', (title: string) => {
-  cy.get('[data-testid="create-task-button"]').click();
-  cy.get('[data-testid="task-title-input"]').type(title);
-  cy.get('[data-testid="task-description-input"]').type('Test task description');
-  cy.get('[data-testid="estimated-pomodoros-input"]').clear().type('3');
-  cy.get('[data-testid="submit-task-button"]').click();
 }); 
