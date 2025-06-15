@@ -7,6 +7,17 @@ import { useTranslation } from 'react-i18next';
 import { ToastProvider } from '../components/ui/toast';
 import { I18nextProvider } from 'react-i18next';
 import i18n from 'i18next';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+/**
+ * Test suite for Login component
+ * Tests the login functionality including:
+ * - Form rendering and validation
+ * - User input handling
+ * - Authentication flow
+ * - Error handling and display
+ * - Navigation after login
+ */
 
 // Mock the contexts
 jest.mock('../contexts/AuthContext', () => ({
@@ -67,115 +78,180 @@ const renderLogin = () => {
   );
 };
 
+// Mock the router navigation
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  ...vi.importActual('react-router-dom'),
+  useNavigate: () => mockNavigate
+}));
+
+// Mock API calls
+vi.mock('../lib/api', () => ({
+  login: vi.fn()
+}));
+
 describe('Login Component', () => {
+  /**
+   * Reset all mocks before each test
+   * Ensures clean state for testing
+   */
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
   });
 
-  test('renders login form', () => {
+  /**
+   * Test form rendering
+   * Verifies that all necessary form elements are present
+   * and properly labeled
+   */
+  it('should render login form', () => {
     renderLogin();
     
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
+    expect(screen.getByText('Don\'t have an account?')).toBeInTheDocument();
   });
 
-  test('validates email format', async () => {
-    renderLogin();
-    
-    const emailInput = screen.getByLabelText('Email');
-    await act(async () => {
+  /**
+   * Test form validation
+   * Verifies that:
+   * - Required fields are enforced
+   * - Email format is validated
+   * - Password requirements are checked
+   */
+  describe('Form Validation', () => {
+    it('should show validation errors for empty fields', async () => {
+      renderLogin();
+      
+      const loginButton = screen.getByRole('button', { name: 'Sign In' });
+      fireEvent.click(loginButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Email is required')).toBeInTheDocument();
+        expect(screen.getByText('Password is required')).toBeInTheDocument();
+      });
+    });
+
+    it('should validate email format', async () => {
+      renderLogin();
+      
+      const emailInput = screen.getByLabelText('Email');
       fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
-      fireEvent.blur(emailInput);
+      
+      const loginButton = screen.getByRole('button', { name: 'Sign In' });
+      fireEvent.click(loginButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Invalid email format')).toBeInTheDocument();
+      });
     });
 
-    expect(emailInput).toHaveAttribute('aria-invalid', 'true');
-  });
+    it('should validate password length', async () => {
+      renderLogin();
+      
+      const passwordInput = screen.getByLabelText('Password');
+      fireEvent.change(passwordInput, { target: { value: '123' } });
+      
+      const loginButton = screen.getByRole('button', { name: 'Sign In' });
+      fireEvent.click(loginButton);
 
-  test('validates password length', async () => {
-    renderLogin();
-    
-    const form = screen.getByRole('form');
-    const passwordInput = screen.getByLabelText('Password');
-    
-    await act(async () => {
-      fireEvent.change(passwordInput, { target: { value: '12345' } });
-      fireEvent.submit(form);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Password must be at least 6 characters')).toBeInTheDocument();
-    });
-  });
-
-  test('toggles password visibility', async () => {
-    renderLogin();
-    
-    const passwordInput = screen.getByLabelText('Password');
-    expect(passwordInput).toHaveAttribute('type', 'password');
-    
-    const toggleButton = screen.getByRole('button', { name: 'Toggle password visibility' });
-    await act(async () => {
-      fireEvent.click(toggleButton);
-    });
-
-    expect(passwordInput).toHaveAttribute('type', 'text');
-  });
-
-  test('handles successful login', async () => {
-    const mockLogin = jest.fn().mockResolvedValue({});
-    jest.spyOn(require('../contexts/AuthContext'), 'useAuth').mockImplementation(() => ({
-      user: null,
-      login: mockLogin,
-      isLoading: false
-    }));
-
-    renderLogin();
-    
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    
-    await act(async () => {
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    });
-    
-    const form = screen.getByRole('form');
-    await act(async () => {
-      fireEvent.submit(form);
-    });
-
-    await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+      await waitFor(() => {
+        expect(screen.getByText('Password must be at least 6 characters')).toBeInTheDocument();
+      });
     });
   });
 
-  test('handles login error', async () => {
-    const mockLogin = jest.fn().mockRejectedValue(new Error('Invalid credentials'));
-    jest.spyOn(require('../contexts/AuthContext'), 'useAuth').mockImplementation(() => ({
-      user: null,
-      login: mockLogin,
-      isLoading: false
-    }));
+  /**
+   * Test successful login flow
+   * Verifies that:
+   * - Form submission works
+   * - API is called with correct data
+   * - User is redirected after success
+   * - Success message is shown
+   */
+  describe('Login Flow', () => {
+    it('should handle successful login', async () => {
+      const { login } = require('../lib/api');
+      login.mockResolvedValueOnce({ id: 1, email: 'test@example.com' });
 
-    renderLogin();
-    
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-    
-    await act(async () => {
-      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-      fireEvent.change(passwordInput, { target: { value: 'password123' } });
-    });
-    
-    const form = screen.getByRole('form');
-    await act(async () => {
-      fireEvent.submit(form);
+      renderLogin();
+      
+      // Fill form
+      fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'test@example.com' }
+      });
+      fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'password123' }
+      });
+      
+      // Submit form
+      fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+
+      await waitFor(() => {
+        expect(login).toHaveBeenCalledWith('test@example.com', 'password123');
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
+        expect(screen.getByText('Successfully logged in')).toBeInTheDocument();
+      });
     });
 
-    await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+    /**
+     * Test error handling
+     * Verifies that:
+     * - API errors are caught
+     * - Error messages are displayed
+     * - Form remains interactive
+     */
+    it('should handle login error', async () => {
+      const { login } = require('../lib/api');
+      login.mockRejectedValueOnce(new Error('Invalid credentials'));
+
+      renderLogin();
+      
+      // Fill form
+      fireEvent.change(screen.getByLabelText('Email'), {
+        target: { value: 'test@example.com' }
+      });
+      fireEvent.change(screen.getByLabelText('Password'), {
+        target: { value: 'wrongpassword' }
+      });
+      
+      // Submit form
+      fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+
+      await waitFor(() => {
+        expect(login).toHaveBeenCalledWith('test@example.com', 'wrongpassword');
+        expect(screen.getByText('Invalid credentials')).toBeInTheDocument();
+        expect(mockNavigate).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  /**
+   * Test navigation links
+   * Verifies that:
+   * - Register link works
+   * - Forgot password link works
+   * - Navigation is handled correctly
+   */
+  describe('Navigation', () => {
+    it('should navigate to register page', () => {
+      renderLogin();
+      
+      const registerLink = screen.getByText('Don\'t have an account?');
+      fireEvent.click(registerLink);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/register');
+    });
+
+    it('should navigate to forgot password page', () => {
+      renderLogin();
+      
+      const forgotPasswordLink = screen.getByText('Forgot password');
+      fireEvent.click(forgotPasswordLink);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/forgot-password');
     });
   });
 

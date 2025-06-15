@@ -1,12 +1,23 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { PomodoroProvider } from '../contexts/PomodoroContext';
 import { UserProvider } from '../contexts/UserContext';
 import Pomodoro from '../pages/Pomodoro';
-import { Toaster } from '../components/ui/toaster';
+import { Toaster } from 'sonner';
+
+/**
+ * Test suite for Pomodoro component
+ * Tests the Pomodoro timer functionality including:
+ * - Timer controls (start, pause, reset)
+ * - Work/break mode switching
+ * - Time tracking and display
+ * - Session completion handling
+ * - Sound notifications
+ */
 
 // Mock the contexts
-jest.mock('../contexts/PomodoroContext', () => ({
+vi.mock('../contexts/PomodoroContext', () => ({
   usePomodoro: () => ({
     settings: {
       workInterval: 25,
@@ -18,13 +29,13 @@ jest.mock('../contexts/PomodoroContext', () => ({
     currentInterval: 1,
     timeLeft: 1500, // 25 minutes in seconds
     isWorkTime: true,
-    start: jest.fn(),
-    pause: jest.fn(),
-    resume: jest.fn(),
-    stop: jest.fn(),
-    skip: jest.fn()
+    start: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    stop: vi.fn(),
+    skip: vi.fn()
   }),
-  PomodoroProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+  PomodoroProvider: ({ children }) => <>{children}</>
 }));
 
 jest.mock('../contexts/UserContext', () => ({
@@ -38,13 +49,32 @@ jest.mock('../contexts/UserContext', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 
-const renderPomodoro = () => {
-  render(
+// Mock audio playback
+const mockPlay = vi.fn();
+const mockPause = vi.fn();
+global.Audio = vi.fn().mockImplementation(() => ({
+  play: mockPlay,
+  pause: mockPause
+}));
+
+// Mock local storage
+const mockLocalStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
+  removeItem: vi.fn()
+} as unknown as Storage;
+Object.defineProperty(window, 'localStorage', { value: mockLocalStorage });
+
+const renderWithProviders = (component) => {
+  return render(
     <BrowserRouter>
       <UserProvider>
         <PomodoroProvider>
-          <Pomodoro />
           <Toaster />
+          {component}
         </PomodoroProvider>
       </UserProvider>
     </BrowserRouter>
@@ -53,206 +83,190 @@ const renderPomodoro = () => {
 
 describe('Pomodoro Component', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    localStorage.clear();
   });
 
-  test('renders initial pomodoro state', () => {
-    renderPomodoro();
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should render initial timer state', () => {
+    renderWithProviders(<Pomodoro />);
     
     expect(screen.getByText('25:00')).toBeInTheDocument();
-    expect(screen.getByText(/work time/i)).toBeInTheDocument();
-    expect(screen.getByText(/interval 1 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText('Work')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /start/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument();
   });
 
-  test('handles start button click', () => {
-    const { start } = require('../contexts/PomodoroContext').usePomodoro();
-    renderPomodoro();
+  it('should start timer when clicking start', () => {
+    renderWithProviders(<Pomodoro />);
+    
+    const startButton = screen.getByRole('button', { name: /start/i });
+    fireEvent.click(startButton);
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText('24:59')).toBeInTheDocument();
+  });
+
+  it('should pause timer when clicking pause', () => {
+    renderWithProviders(<Pomodoro />);
     
     const startButton = screen.getByRole('button', { name: /start/i });
     fireEvent.click(startButton);
     
-    expect(start).toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    fireEvent.click(startButton);
+    const time = screen.getByText('24:55');
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(time).toBeInTheDocument();
   });
 
-  test('shows pause button when timer is running', () => {
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: false,
-      currentInterval: 1,
-      timeLeft: 1500,
-      isWorkTime: true,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: jest.fn(),
-      stop: jest.fn(),
-      skip: jest.fn()
-    }));
-
-    renderPomodoro();
+  it('should reset timer when clicking reset', () => {
+    renderWithProviders(<Pomodoro />);
     
-    expect(screen.getByRole('button', { name: /pause/i })).toBeInTheDocument();
+    const startButton = screen.getByRole('button', { name: /start/i });
+    const resetButton = screen.getByRole('button', { name: /reset/i });
+    
+    fireEvent.click(startButton);
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    fireEvent.click(resetButton);
+    expect(screen.getByText('25:00')).toBeInTheDocument();
   });
 
-  test('shows resume button when timer is paused', () => {
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: true,
-      currentInterval: 1,
-      timeLeft: 1500,
-      isWorkTime: true,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: jest.fn(),
-      stop: jest.fn(),
-      skip: jest.fn()
-    }));
-
-    renderPomodoro();
+  it('should switch to break mode after work session', () => {
+    renderWithProviders(<Pomodoro />);
     
-    expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument();
+    const startButton = screen.getByRole('button', { name: /start/i });
+    fireEvent.click(startButton);
+
+    act(() => {
+      vi.advanceTimersByTime(25 * 60 * 1000);
+    });
+
+    expect(screen.getByText('Break')).toBeInTheDocument();
+    expect(screen.getByText('5:00')).toBeInTheDocument();
   });
 
-  test('handles pause button click', () => {
-    const mockPause = jest.fn();
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: false,
-      currentInterval: 1,
-      timeLeft: 1500,
-      isWorkTime: true,
-      start: jest.fn(),
-      pause: mockPause,
-      resume: jest.fn(),
-      stop: jest.fn(),
-      skip: jest.fn()
-    }));
+  it('should switch back to work mode after break', () => {
+    renderWithProviders(<Pomodoro />);
+    
+    const startButton = screen.getByRole('button', { name: /start/i });
+    fireEvent.click(startButton);
 
-    renderPomodoro();
-    
-    const pauseButton = screen.getByRole('button', { name: /pause/i });
-    fireEvent.click(pauseButton);
-    
-    expect(mockPause).toHaveBeenCalled();
+    // Complete work session
+    act(() => {
+      vi.advanceTimersByTime(25 * 60 * 1000);
+    });
+
+    // Complete break session
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+
+    expect(screen.getByText('Work')).toBeInTheDocument();
+    expect(screen.getByText('25:00')).toBeInTheDocument();
   });
 
-  test('handles resume button click', () => {
-    const mockResume = jest.fn();
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: true,
-      currentInterval: 1,
-      timeLeft: 1500,
-      isWorkTime: true,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: mockResume,
-      stop: jest.fn(),
-      skip: jest.fn()
-    }));
+  it('should play sound when session completes', () => {
+    renderWithProviders(<Pomodoro />);
+    
+    const startButton = screen.getByRole('button', { name: /start/i });
+    fireEvent.click(startButton);
 
-    renderPomodoro();
-    
-    const resumeButton = screen.getByRole('button', { name: /resume/i });
-    fireEvent.click(resumeButton);
-    
-    expect(mockResume).toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(25 * 60 * 1000);
+    });
+
+    expect(mockPlay).toHaveBeenCalled();
   });
 
-  test('handles skip button click', () => {
-    const mockSkip = jest.fn();
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: false,
-      currentInterval: 1,
-      timeLeft: 1500,
-      isWorkTime: true,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: jest.fn(),
-      stop: jest.fn(),
-      skip: mockSkip
-    }));
+  it('should not play sound when timer is reset', () => {
+    renderWithProviders(<Pomodoro />);
+    
+    const startButton = screen.getByRole('button', { name: /start/i });
+    const resetButton = screen.getByRole('button', { name: /reset/i });
+    
+    fireEvent.click(startButton);
 
-    renderPomodoro();
-    
-    const skipButton = screen.getByRole('button', { name: /skip/i });
-    fireEvent.click(skipButton);
-    
-    expect(mockSkip).toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    fireEvent.click(resetButton);
+    expect(mockPlay).not.toHaveBeenCalled();
   });
 
-  test('shows break time state', () => {
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: false,
-      currentInterval: 1,
-      timeLeft: 300, // 5 minutes in seconds
-      isWorkTime: false,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: jest.fn(),
-      stop: jest.fn(),
-      skip: jest.fn()
-    }));
-
-    renderPomodoro();
+  it('should increment completed sessions', () => {
+    renderWithProviders(<Pomodoro />);
     
-    expect(screen.getByText('05:00')).toBeInTheDocument();
-    expect(screen.getByText(/break time/i)).toBeInTheDocument();
+    const startButton = screen.getByRole('button', { name: /start/i });
+    fireEvent.click(startButton);
+
+    // Complete work session
+    act(() => {
+      vi.advanceTimersByTime(25 * 60 * 1000);
+    });
+
+    // Complete break session
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+
+    expect(screen.getByText('Sessions: 1')).toBeInTheDocument();
   });
 
-  test('formats time correctly', () => {
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      isRunning: true,
-      isPaused: false,
-      currentInterval: 1,
-      timeLeft: 65, // 1 minute and 5 seconds
-      isWorkTime: true,
-      start: jest.fn(),
-      pause: jest.fn(),
-      resume: jest.fn(),
-      stop: jest.fn(),
-      skip: jest.fn()
+  it('should not increment on reset', () => {
+    renderWithProviders(<Pomodoro />);
+    
+    const startButton = screen.getByRole('button', { name: /start/i });
+    const resetButton = screen.getByRole('button', { name: /reset/i });
+    
+    fireEvent.click(startButton);
+
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    fireEvent.click(resetButton);
+    expect(screen.getByText('Sessions: 0')).toBeInTheDocument();
+  });
+
+  it('should save settings to local storage', () => {
+    renderWithProviders(<Pomodoro />);
+    
+    const startButton = screen.getByRole('button', { name: /start/i });
+    fireEvent.click(startButton);
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'pomodoroSettings',
+      expect.any(String)
+    );
+  });
+
+  it('should load settings from local storage', () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify({
+      workDuration: 30,
+      breakDuration: 10
     }));
 
-    renderPomodoro();
-    
-    expect(screen.getByText('01:05')).toBeInTheDocument();
+    renderWithProviders(<Pomodoro />);
+    expect(screen.getByText('30:00')).toBeInTheDocument();
   });
 }); 

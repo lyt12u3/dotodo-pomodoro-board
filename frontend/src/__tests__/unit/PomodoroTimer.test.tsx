@@ -3,15 +3,31 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import { PomodoroTimer } from '../../components/PomodoroTimer';
 import { PomodoroProvider } from '../../contexts/PomodoroContext';
 
+/**
+ * Test suite for the PomodoroTimer component
+ * Tests core functionality including:
+ * - Timer controls (start, pause, reset)
+ * - Mode switching (work/break)
+ * - Cycle counting
+ * - Long-duration stability
+ */
 describe('PomodoroTimer Component', () => {
+  // Set up fake timers before each test to control time
   beforeEach(() => {
     vi.useFakeTimers();
   });
 
+  // Clean up after each test to prevent timer leaks
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  /**
+   * Test initial state of the timer
+   * Verifies that:
+   * - Timer displays default work duration (25:00)
+   * - Component renders without errors
+   */
   it('should initialize with default work duration', () => {
     render(
       <PomodoroProvider>
@@ -22,6 +38,12 @@ describe('PomodoroTimer Component', () => {
     expect(screen.getByText('25:00')).toBeInTheDocument();
   });
 
+  /**
+   * Test start functionality
+   * Verifies that:
+   * - Timer starts counting down when start button is clicked
+   * - Time updates correctly after one second
+   */
   it('should start countdown when start button is clicked', async () => {
     render(
       <PomodoroProvider>
@@ -39,6 +61,12 @@ describe('PomodoroTimer Component', () => {
     expect(screen.getByText('24:59')).toBeInTheDocument();
   });
 
+  /**
+   * Test pause functionality
+   * Verifies that:
+   * - Timer stops when pause button is clicked
+   * - Time remains unchanged while paused
+   */
   it('should pause countdown when pause button is clicked', async () => {
     render(
       <PomodoroProvider>
@@ -63,6 +91,12 @@ describe('PomodoroTimer Component', () => {
     expect(screen.getByText('24:59')).toBeInTheDocument(); // Time should not change after pause
   });
 
+  /**
+   * Test reset functionality
+   * Verifies that:
+   * - Timer resets to initial state when reset button is clicked
+   * - All state variables are properly reset
+   */
   it('should reset timer when reset button is clicked', async () => {
     render(
       <PomodoroProvider>
@@ -83,6 +117,13 @@ describe('PomodoroTimer Component', () => {
     expect(screen.getByText('25:00')).toBeInTheDocument();
   });
 
+  /**
+   * Test automatic mode switching
+   * Verifies that:
+   * - Timer switches to break mode after work session
+   * - Break duration is set correctly (5:00)
+   * - Mode indicator updates properly
+   */
   it('should switch to break mode after work session completes', async () => {
     render(
       <PomodoroProvider>
@@ -101,6 +142,13 @@ describe('PomodoroTimer Component', () => {
     expect(screen.getByText(/break/i)).toBeInTheDocument();
   });
 
+  /**
+   * Test rapid mode switching stability
+   * Verifies that:
+   * - UI remains stable during rapid mode changes
+   * - Timer maintains valid state
+   * - No errors occur during rapid switching
+   */
   it('should handle rapid mode switching', async () => {
     render(
       <PomodoroProvider>
@@ -119,6 +167,14 @@ describe('PomodoroTimer Component', () => {
     expect(screen.getByText(/\d{2}:\d{2}/)).toBeInTheDocument();
   });
 
+  /**
+   * Test long-duration stability
+   * Verifies that:
+   * - Timer maintains accuracy over multiple cycles
+   * - Cycle count increments correctly
+   * - State remains consistent over extended periods
+   * Uses shortened periods (5s work, 3s break) for testing efficiency
+   */
   it('should maintain accurate timing over long periods', async () => {
     render(
       <PomodoroProvider>

@@ -1,199 +1,286 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from '../contexts/AuthContext';
-import { UserProvider } from '../contexts/UserContext';
-import { PomodoroProvider } from '../contexts/PomodoroContext';
 import Settings from '../pages/Settings';
-import { Toaster } from '../components/ui/toaster';
+import { AuthProvider } from '../contexts/AuthContext';
+import { ToastProvider } from '../components/ui/toast';
 
-// Mock the contexts
-jest.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: { id: 1, email: 'test@example.com', name: 'Test User', language: 'en' },
-    setUser: jest.fn(),
-    isLoading: false
-  }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+/**
+ * Test suite for Settings component
+ * Tests the user settings functionality including:
+ * - Settings form rendering
+ * - User preferences management
+ * - Theme switching
+ * - Language selection
+ * - Notification settings
+ * - Form validation and submission
+ */
+
+// Mock API calls
+vi.mock('../lib/api', () => ({
+  getUserSettings: vi.fn(),
+  updateUserSettings: vi.fn()
 }));
 
-jest.mock('../contexts/UserContext', () => ({
-  useUser: () => ({
-    settings: {
-      name: 'Test User',
-      language: 'en'
-    },
-    updateSettings: jest.fn(),
-    isLoading: false
-  }),
-  UserProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+// Mock theme context
+vi.mock('../contexts/ThemeContext', () => ({
+  useTheme: () => ({
+    theme: 'light',
+    setTheme: vi.fn()
+  })
 }));
 
-jest.mock('../contexts/PomodoroContext', () => ({
-  usePomodoro: () => ({
-    settings: {
-      workInterval: 25,
-      breakInterval: 5,
-      intervalsCount: 4
-    },
-    updateSettings: jest.fn()
-  }),
-  PomodoroProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
-}));
-
-const renderSettings = () => {
-  render(
-    <BrowserRouter>
-      <AuthProvider>
-        <UserProvider>
-          <PomodoroProvider>
-            <Settings />
-            <Toaster />
-          </PomodoroProvider>
-        </UserProvider>
-      </AuthProvider>
-    </BrowserRouter>
+// Wrapper component for tests
+const renderWithProviders = (component: React.ReactNode) => {
+  return render(
+    <AuthProvider>
+      <ToastProvider>
+        {component}
+      </ToastProvider>
+    </AuthProvider>
   );
 };
 
 describe('Settings Component', () => {
+  /**
+   * Reset all mocks and local storage before each test
+   * Ensures clean state for testing
+   */
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
+    localStorage.clear();
   });
 
-  test('renders settings form with current values', () => {
-    renderSettings();
+  /**
+   * Test initial settings form rendering
+   * Verifies that all form elements are present
+   * and properly initialized
+   */
+  it('should render settings form', () => {
+    renderWithProviders(<Settings />);
     
-    expect(screen.getByLabelText(/name/i)).toHaveValue('Test User');
-    expect(screen.getByLabelText(/work interval/i)).toHaveValue('25');
-    expect(screen.getByLabelText(/break interval/i)).toHaveValue('5');
-    expect(screen.getByLabelText(/intervals count/i)).toHaveValue('4');
+    expect(screen.getByLabelText(/theme/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/language/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/notifications/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
   });
 
-  test('validates work interval input', async () => {
-    renderSettings();
-    
-    const workIntervalInput = screen.getByLabelText(/work interval/i);
-    fireEvent.change(workIntervalInput, { target: { value: '0' } });
-    
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
+  /**
+   * Test theme switching functionality
+   * Verifies that:
+   * - Theme options are available
+   * - Theme changes are applied
+   * - Theme persistence works
+   */
+  describe('Theme Settings', () => {
+    it('should switch theme', async () => {
+      const { setTheme } = require('../contexts/ThemeContext').useTheme();
+      renderWithProviders(<Settings />);
+      
+      const themeSelect = screen.getByLabelText(/theme/i);
+      fireEvent.change(themeSelect, { target: { value: 'dark' } });
 
-    await waitFor(() => {
-      expect(screen.getByText(/work interval must be between 1 and/i)).toBeInTheDocument();
-    });
-  });
-
-  test('validates break interval input', async () => {
-    renderSettings();
-    
-    const breakIntervalInput = screen.getByLabelText(/break interval/i);
-    fireEvent.change(breakIntervalInput, { target: { value: '0' } });
-    
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/break interval must be between 1 and/i)).toBeInTheDocument();
-    });
-  });
-
-  test('validates intervals count input', async () => {
-    renderSettings();
-    
-    const intervalsInput = screen.getByLabelText(/intervals count/i);
-    fireEvent.change(intervalsInput, { target: { value: '0' } });
-    
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/intervals count must be between 1 and/i)).toBeInTheDocument();
-    });
-  });
-
-  test('validates name input', async () => {
-    renderSettings();
-    
-    const nameInput = screen.getByLabelText(/name/i);
-    fireEvent.change(nameInput, { target: { value: '123' } });
-    
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/name can only contain letters, spaces and hyphens/i)).toBeInTheDocument();
-    });
-  });
-
-  test('shows confirmation dialog on valid form submission', async () => {
-    renderSettings();
-    
-    const nameInput = screen.getByLabelText(/name/i);
-    const workIntervalInput = screen.getByLabelText(/work interval/i);
-    const breakIntervalInput = screen.getByLabelText(/break interval/i);
-    const intervalsInput = screen.getByLabelText(/intervals count/i);
-    
-    fireEvent.change(nameInput, { target: { value: 'New Name' } });
-    fireEvent.change(workIntervalInput, { target: { value: '30' } });
-    fireEvent.change(breakIntervalInput, { target: { value: '10' } });
-    fireEvent.change(intervalsInput, { target: { value: '3' } });
-    
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/save settings\?/i)).toBeInTheDocument();
-      expect(screen.getByText(/are you sure you want to save these settings\?/i)).toBeInTheDocument();
-    });
-  });
-
-  test('calls update functions on settings confirmation', async () => {
-    const mockUpdateUserSettings = jest.fn();
-    const mockUpdatePomodoroSettings = jest.fn();
-    
-    jest.spyOn(require('../contexts/UserContext'), 'useUser').mockImplementation(() => ({
-      settings: {
-        name: 'Test User',
-        language: 'en'
-      },
-      updateSettings: mockUpdateUserSettings,
-      isLoading: false
-    }));
-
-    jest.spyOn(require('../contexts/PomodoroContext'), 'usePomodoro').mockImplementation(() => ({
-      settings: {
-        workInterval: 25,
-        breakInterval: 5,
-        intervalsCount: 4
-      },
-      updateSettings: mockUpdatePomodoroSettings
-    }));
-
-    renderSettings();
-    
-    const nameInput = screen.getByLabelText(/name/i);
-    const workIntervalInput = screen.getByLabelText(/work interval/i);
-    
-    fireEvent.change(nameInput, { target: { value: 'New Name' } });
-    fireEvent.change(workIntervalInput, { target: { value: '30' } });
-    
-    const saveButton = screen.getByRole('button', { name: /save changes/i });
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      const confirmButton = screen.getByRole('button', { name: /confirm/i });
-      fireEvent.click(confirmButton);
-    });
-
-    await waitFor(() => {
-      expect(mockUpdateUserSettings).toHaveBeenCalledWith({
-        name: 'New Name',
-        language: 'en'
+      await waitFor(() => {
+        expect(setTheme).toHaveBeenCalledWith('dark');
       });
-      expect(mockUpdatePomodoroSettings).toHaveBeenCalledWith({
-        workInterval: 30,
-        breakInterval: 5,
-        intervalsCount: 4
+    });
+
+    it('should persist theme preference', async () => {
+      const { updateUserSettings } = require('../lib/api');
+      renderWithProviders(<Settings />);
+      
+      const themeSelect = screen.getByLabelText(/theme/i);
+      fireEvent.change(themeSelect, { target: { value: 'dark' } });
+      
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(updateUserSettings).toHaveBeenCalledWith(expect.objectContaining({
+          theme: 'dark'
+        }));
+      });
+    });
+  });
+
+  /**
+   * Test language selection functionality
+   * Verifies that:
+   * - Language options are available
+   * - Language changes are applied
+   * - Language persistence works
+   */
+  describe('Language Settings', () => {
+    it('should change language', async () => {
+      renderWithProviders(<Settings />);
+      
+      const languageSelect = screen.getByLabelText(/language/i);
+      fireEvent.change(languageSelect, { target: { value: 'es' } });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('es')).toBeInTheDocument();
+      });
+    });
+
+    it('should persist language preference', async () => {
+      const { updateUserSettings } = require('../lib/api');
+      renderWithProviders(<Settings />);
+      
+      const languageSelect = screen.getByLabelText(/language/i);
+      fireEvent.change(languageSelect, { target: { value: 'es' } });
+      
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(updateUserSettings).toHaveBeenCalledWith(expect.objectContaining({
+          language: 'es'
+        }));
+      });
+    });
+  });
+
+  /**
+   * Test notification settings
+   * Verifies that:
+   * - Notification toggles work
+   * - Notification preferences are saved
+   * - Permission handling works
+   */
+  describe('Notification Settings', () => {
+    it('should toggle notifications', async () => {
+      renderWithProviders(<Settings />);
+      
+      const notificationToggle = screen.getByLabelText(/notifications/i);
+      fireEvent.click(notificationToggle);
+
+      await waitFor(() => {
+        expect(notificationToggle).toBeChecked();
+      });
+    });
+
+    it('should persist notification preferences', async () => {
+      const { updateUserSettings } = require('../lib/api');
+      renderWithProviders(<Settings />);
+      
+      const notificationToggle = screen.getByLabelText(/notifications/i);
+      fireEvent.click(notificationToggle);
+      
+      const saveButton = screen.getByRole('button', { name: /save/i });
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(updateUserSettings).toHaveBeenCalledWith(expect.objectContaining({
+          notifications: true
+        }));
+      });
+    });
+
+    it('should handle notification permission denial', async () => {
+      // Mock notification permission
+      Object.defineProperty(window, 'Notification', {
+        value: {
+          permission: 'denied',
+          requestPermission: vi.fn()
+        }
+      });
+
+      renderWithProviders(<Settings />);
+      
+      const notificationToggle = screen.getByLabelText(/notifications/i);
+      fireEvent.click(notificationToggle);
+
+      await waitFor(() => {
+        expect(screen.getByText(/notification permission denied/i)).toBeInTheDocument();
+        expect(notificationToggle).not.toBeChecked();
+      });
+    });
+  });
+
+  /**
+   * Test settings form submission
+   * Verifies that:
+   * - Form validation works
+   * - API calls are made correctly
+   * - Success/error messages are shown
+   */
+  describe('Settings Submission', () => {
+    it('should save all settings successfully', async () => {
+      const { updateUserSettings } = require('../lib/api');
+      updateUserSettings.mockResolvedValueOnce({
+        theme: 'dark',
+        language: 'es',
+        notifications: true
+      });
+
+      renderWithProviders(<Settings />);
+      
+      // Update all settings
+      fireEvent.change(screen.getByLabelText(/theme/i), { target: { value: 'dark' } });
+      fireEvent.change(screen.getByLabelText(/language/i), { target: { value: 'es' } });
+      fireEvent.click(screen.getByLabelText(/notifications/i));
+      
+      // Save settings
+      fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(updateUserSettings).toHaveBeenCalledWith({
+          theme: 'dark',
+          language: 'es',
+          notifications: true
+        });
+        expect(screen.getByText(/settings saved successfully/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should handle settings update error', async () => {
+      const { updateUserSettings } = require('../lib/api');
+      updateUserSettings.mockRejectedValueOnce(new Error('Failed to update settings'));
+
+      renderWithProviders(<Settings />);
+      
+      // Try to save settings
+      fireEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/failed to update settings/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  /**
+   * Test settings loading
+   * Verifies that:
+   * - Initial settings are loaded
+   * - Loading states are handled
+   * - Error states are handled
+   */
+  describe('Settings Loading', () => {
+    it('should load user settings on mount', async () => {
+      const { getUserSettings } = require('../lib/api');
+      getUserSettings.mockResolvedValueOnce({
+        theme: 'dark',
+        language: 'es',
+        notifications: true
+      });
+
+      renderWithProviders(<Settings />);
+
+      await waitFor(() => {
+        expect(getUserSettings).toHaveBeenCalled();
+        expect(screen.getByDisplayValue('dark')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('es')).toBeInTheDocument();
+        expect(screen.getByLabelText(/notifications/i)).toBeChecked();
+      });
+    });
+
+    it('should handle settings loading error', async () => {
+      const { getUserSettings } = require('../lib/api');
+      getUserSettings.mockRejectedValueOnce(new Error('Failed to load settings'));
+
+      renderWithProviders(<Settings />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/failed to load settings/i)).toBeInTheDocument();
       });
     });
   });

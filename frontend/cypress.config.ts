@@ -2,10 +2,14 @@ import { defineConfig } from 'cypress';
 
 export default defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'http://localhost:5173',
+    supportFile: 'cypress/support/e2e.ts',
+    specPattern: 'src/__tests__/e2e/**/*.cy.{js,jsx,ts,tsx}',
+    video: false,
+    screenshotOnRunFailure: true,
+    defaultCommandTimeout: 10000,
     setupNodeEvents(on, config) {
-      require('@cypress/code-coverage/task')(on, config);
-      return config;
+      // implement node event listeners here
     },
   },
   component: {

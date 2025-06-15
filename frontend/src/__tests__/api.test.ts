@@ -1,128 +1,236 @@
 import { login, logout, register, getCurrentUser, getUserSettings, updateUserSettings, updatePomodoroSession } from '../lib/api';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+/**
+ * Test suite for API functionality
+ * Tests all API endpoints including:
+ * - Authentication (login, register, logout)
+ * - User management (get current user, update user)
+ * - Error handling and response parsing
+ */
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
-describe('API Functions', () => {
-  const mockFetch = jest.fn();
-  global.fetch = mockFetch;
-
+describe('API Tests', () => {
+  /**
+   * Reset mocks and local storage before each test
+   * Ensures clean state for API calls
+   */
   beforeEach(() => {
-    // Clear all mocks before each test
-    mockFetch.mockClear();
+    vi.clearAllMocks();
+    localStorage.clear();
+    global.fetch = vi.fn();
   });
 
-  describe('login', () => {
-    it('should successfully login with valid credentials', async () => {
-      const mockResponse = { id: 1, email: 'test@example.com' };
-      mockFetch.mockResolvedValueOnce({
+  /**
+   * Test login API endpoint
+   * Verifies:
+   * - Correct request format
+   * - Token storage
+   * - Response handling
+   * - Error cases
+   */
+  describe('login()', () => {
+    it('should make correct API call and store token', async () => {
+      const mockResponse = {
+        token: 'test-token',
+        user: { id: 1, email: 'test@example.com' }
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
 
-      const result = await login('test@example.com', 'password123');
-      
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/login', {
+      const result = await login('test@example.com', 'password');
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'password123'
-        }),
-        credentials: 'include'
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'test@example.com', password: 'password' })
       });
+
+      expect(localStorage.getItem('token')).toBe('test-token');
+      expect(result).toEqual(mockResponse.user);
     });
 
-    it('should throw error with invalid credentials', async () => {
-      mockFetch.mockResolvedValueOnce({
+    it('should handle login errors', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 401,
         json: () => Promise.resolve({ message: 'Invalid credentials' })
       });
 
-      await expect(login('test@example.com', 'wrongpassword'))
-        .rejects
-        .toThrow('Invalid credentials');
+      await expect(login('test@example.com', 'wrong-password'))
+        .rejects.toThrow('Invalid credentials');
     });
   });
 
-  describe('register', () => {
-    it('should successfully register a new user', async () => {
-      const mockResponse = { id: 1, email: 'test@example.com', name: 'Test User' };
-      mockFetch.mockResolvedValueOnce({
+  /**
+   * Test registration API endpoint
+   * Verifies:
+   * - User creation
+   * - Automatic login after registration
+   * - Data validation
+   * - Error handling
+   */
+  describe('register()', () => {
+    it('should register new user and login', async () => {
+      const mockResponse = {
+        token: 'new-user-token',
+        user: { id: 1, email: 'new@example.com', name: 'New User' }
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
 
-      const result = await register('test@example.com', 'password123', 'Test User');
-      
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/register', {
+      const result = await register('new@example.com', 'password', 'New User');
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'new@example.com',
+          password: 'password',
+          name: 'New User'
+        })
+      });
+
+      expect(localStorage.getItem('token')).toBe('new-user-token');
+      expect(result).toEqual(mockResponse.user);
+    });
+
+    it('should handle registration errors', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ message: 'Email already exists' })
+      });
+
+      await expect(register('existing@example.com', 'password', 'Test User'))
+        .rejects.toThrow('Email already exists');
+    });
+  });
+
+  /**
+   * Test logout functionality
+   * Verifies:
+   * - Token removal
+   * - Server notification
+   * - State cleanup
+   */
+  describe('logout()', () => {
+    it('should clear token and notify server', async () => {
+      localStorage.setItem('token', 'test-token');
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({})
+      });
+
+      await logout();
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'test@example.com',
-          password: 'password123',
-          name: 'Test User'
-        }),
-        credentials: 'include'
-      });
-    });
-
-    it('should throw error if email already exists', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: () => Promise.resolve({ message: 'Email already exists' }),
+          'Authorization': 'Bearer test-token'
+        }
       });
 
-      await expect(register('existing@example.com', 'password123', 'Test User'))
-        .rejects
-        .toThrow('Email already exists');
+      expect(localStorage.getItem('token')).toBeNull();
     });
   });
 
-  describe('getCurrentUser', () => {
-    it('should return current user data when authenticated', async () => {
-      const mockResponse = { id: 1, email: 'test@example.com' };
-      mockFetch.mockResolvedValueOnce({
+  /**
+   * Test current user retrieval
+   * Verifies:
+   * - Authentication check
+   * - User data fetching
+   * - Token validation
+   */
+  describe('getCurrentUser()', () => {
+    it('should fetch current user with valid token', async () => {
+      localStorage.setItem('token', 'test-token');
+
+      const mockUser = { id: 1, email: 'test@example.com' };
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse)
+        json: () => Promise.resolve(mockUser)
       });
 
       const result = await getCurrentUser();
-      
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/users/me', {
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/auth/me', {
         headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
+          'Authorization': 'Bearer test-token'
+        }
       });
+
+      expect(result).toEqual(mockUser);
     });
 
-    it('should throw error when not authenticated', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: () => Promise.resolve({ message: 'Unauthorized' })
+    it('should return null when no token exists', async () => {
+      const result = await getCurrentUser();
+      expect(result).toBeNull();
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Test user profile updates
+   * Verifies:
+   * - Data validation
+   * - Update processing
+   * - Response handling
+   * - Error cases
+   */
+  describe('updateUserSettings', () => {
+    it('should update user settings', async () => {
+      localStorage.setItem('token', 'test-token');
+
+      const updates = { name: 'Updated Name', language: 'en' };
+      const mockResponse = { id: 1, ...updates };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
       });
 
-      await expect(getCurrentUser())
-        .rejects
-        .toThrow('Unauthorized');
+      const result = await updateUserSettings(updates);
+
+      expect(global.fetch).toHaveBeenCalledWith('/api/users/settings', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token'
+        },
+        body: JSON.stringify(updates),
+        credentials: 'include'
+      });
+
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle update errors', async () => {
+      localStorage.setItem('token', 'test-token');
+
+      const updates = { name: 'Updated Name', language: 'en' };
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: false,
+        json: () => Promise.resolve({ message: 'Update failed' })
+      });
+
+      await expect(updateUserSettings(updates)).rejects.toThrow('Update failed');
     });
   });
 
   describe('getUserSettings', () => {
     it('should return user settings when authenticated', async () => {
       const mockResponse = { name: 'Test User', language: 'en' };
-      mockFetch.mockResolvedValueOnce({
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -130,46 +238,12 @@ describe('API Functions', () => {
       const result = await getUserSettings();
       
       expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/users/settings', {
+      expect(global.fetch).toHaveBeenCalledWith('/api/users/settings', {
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include'
       });
-    });
-  });
-
-  describe('updateUserSettings', () => {
-    it('should successfully update user settings', async () => {
-      const mockResponse = { name: 'New Name', language: 'fr' };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse)
-      });
-
-      const result = await updateUserSettings({ name: 'New Name', language: 'fr' });
-      
-      expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/users/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: 'New Name', language: 'fr' }),
-        credentials: 'include'
-      });
-    });
-
-    it('should throw error when validation fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: () => Promise.resolve({ message: 'Invalid settings' }),
-      });
-
-      await expect(updateUserSettings({ workInterval: -1 }))
-        .rejects
-        .toThrow('Invalid settings');
     });
   });
 
@@ -183,7 +257,7 @@ describe('API Functions', () => {
         duration: 1500,
         completed: true
       };
-      mockFetch.mockResolvedValueOnce({
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse)
       });
@@ -194,7 +268,7 @@ describe('API Functions', () => {
       });
 
       expect(result).toEqual(mockResponse);
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/pomodoro-sessions/1', {
+      expect(global.fetch).toHaveBeenCalledWith('/api/pomodoro-sessions/1', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -205,37 +279,6 @@ describe('API Functions', () => {
         }),
         credentials: 'include'
       });
-    });
-  });
-
-  describe('logout', () => {
-    it('should successfully logout', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({})
-      });
-
-      await logout();
-      
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
-    });
-
-    it('should throw error when logout fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.resolve({ message: 'Server error' }),
-      });
-
-      await expect(logout())
-        .rejects
-        .toThrow('Server error');
     });
   });
 }); 
