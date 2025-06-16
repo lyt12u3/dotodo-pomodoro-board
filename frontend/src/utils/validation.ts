@@ -36,7 +36,11 @@ export function validateTaskInput(
   // Validate due date if provided
   if (dueDate) {
     const now = new Date();
-    if (dueDate < now) {
+    // Reset time part for both dates to compare only dates
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    const nowOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (dueDateOnly < nowOnly) {
       return false;
     }
   }

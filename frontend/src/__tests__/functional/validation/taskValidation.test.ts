@@ -30,9 +30,10 @@ describe('Task validation', () => {
   });
 
   it('should validate task dates', () => {
-    const pastDate = new Date(2020, 0, 1);
-    const futureDate = new Date(2025, 0, 1);
-    const today = new Date();
+    const now = new Date();
+    const pastDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    const futureDate = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     expect(validateTaskInput('Task', 'low', pastDate)).toBe(false);
     expect(validateTaskInput('Task', 'low', futureDate)).toBe(true);

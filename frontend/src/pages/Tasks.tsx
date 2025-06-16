@@ -112,7 +112,7 @@ const TaskItem: React.FC<{
       <div
         className={`flex items-center justify-between p-3 rounded-md bg-secondary mb-2 group animate-in fade-in slide-in-from-left-5 transition-all duration-300 ${task.completed ? 'opacity-60 scale-95' : 'opacity-100 scale-100'}`}
       >
-        <div className="flex items-center gap-3 flex-grow">
+        <div className="flex items-center gap-3 flex-grow min-w-0">
           <button
             onClick={handleToggleComplete}
             disabled={isUpdating}
@@ -122,7 +122,12 @@ const TaskItem: React.FC<{
           >
             {task.completed && <Check className="h-3 w-3 text-white" />}
           </button>
-          <span className={`transition-all duration-300 ${task.completed ? 'line-through text-gray-500' : ''}`}>{task.title}</span>
+          <span
+            className={`transition-all duration-300 ${task.completed ? 'line-through text-gray-500' : ''} truncate max-w-[140px] md:max-w-[180px] lg:max-w-[220px]`}
+            title={task.title}
+          >
+            {task.title}
+          </span>
         </div>
         
         <div className="flex items-center gap-2">
