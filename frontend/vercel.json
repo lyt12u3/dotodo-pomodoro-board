@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://dotodo-pomodoro-board.onrender.com/api/$1" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
