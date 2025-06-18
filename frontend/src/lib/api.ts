@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://dotodo-pomodoro-board.onrender.com/api';
 
 interface ApiError {
   message: string;
