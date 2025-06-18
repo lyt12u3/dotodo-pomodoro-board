@@ -28,13 +28,13 @@ interface AuthenticatedRequest extends Request {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Req() req: AuthenticatedRequest): AuthenticatedUserPayload {
     return req.user;
   }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('settings')
   async getSettings(@Req() req: AuthenticatedRequest): Promise<UserSettings> {
     const user = await this.usersService.findOneById(req.user.id);
@@ -48,7 +48,7 @@ export class UsersController {
     };
   }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Patch('settings')
   async updateSettings(@Req() req: AuthenticatedRequest, @Body() body: UpdateUserSettingsDto): Promise<UserSettings> {
     const updated = await this.usersService.updateUser(req.user.id, body);
