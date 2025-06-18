@@ -114,7 +114,7 @@ export class AuthController {
     }
   }
 
-  @UseGuards(JwtRefreshAuthGuard)
+  // @UseGuards(JwtRefreshAuthGuard)
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refreshTokens(@Req() req: AuthenticatedRequest, @Res({ passthrough: true }) response: Response) {
