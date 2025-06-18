@@ -28,10 +28,14 @@ async function apiFetch<T>(
     if (response.status === 401 && !skipTokenRefresh) {
       // Only try to refresh if it's not auth-related endpoints
       if (!endpoint.includes('/auth/')) {
-        const refreshed = await refreshToken();
-        if (refreshed) {
-          // Retry the original request
-          return apiFetch(endpoint, options, true);
+        try {
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            // Retry the original request
+            return apiFetch(endpoint, options, true);
+          }
+        } catch (error) {
+          console.error('Token refresh failed:', error);
         }
       }
       
@@ -143,13 +147,6 @@ function transformTaskResponse(task: any): Task {
     status: task.isCompleted ? 'COMPLETED' : 'PENDING'
   };
 }
-
-export async function getTasks() {
-  console.log('[API] Getting tasks...');
-  const tasks = await apiFetch<Task[]>('/tasks');
-  return tasks.map(transformTaskResponse);
-}
-
 export async function getTask(id: string) {
   const task = await apiFetch<Task>(`/tasks/${id}`);
   return transformTaskResponse(task);
@@ -216,6 +213,7 @@ export interface PomodoroSession {
   endTime: string;
   duration: number;
   completed: boolean;
+  status: 'STARTED' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
 }
 
 export async function getPomodoroSessions() {
@@ -244,4 +242,10 @@ export async function deletePomodoroSession(id: string) {
   return apiFetch<void>(`/pomodoro-sessions/${id}`, {
     method: 'DELETE',
   });
-} 
+}
+
+export async function getTasks() {
+  console.log('[API] Getting tasks...');
+  const tasks = await apiFetch<Task[]>('/tasks');
+  return tasks.map(transformTaskResponse);
+}
