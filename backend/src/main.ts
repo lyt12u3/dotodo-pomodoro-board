@@ -4,9 +4,12 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import helmet from 'helmet';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const isProduction = configService.get('NODE_ENV') === 'production';
 
   app.enableCors({
     origin: ['https://dotodo-pomodoro-board.vercel.app', 'http://localhost:5173', 'http://localhost:8080', 'http://localhost:8081'],
