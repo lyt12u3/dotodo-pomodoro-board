@@ -58,7 +58,8 @@ export class AuthController {
     response.cookie('access_token', accessToken, {
       httpOnly: true,
       secure: this.configService.get<string>('NODE_ENV') === 'production',
-      sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+      //sameSite: this.configService.get<string>('NODE_ENV') === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       path: '/',
       expires: accessExpires,
     });
