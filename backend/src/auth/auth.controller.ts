@@ -139,14 +139,14 @@ export class AuthController {
     response.cookie('access_token', '', { 
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'lax',
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       expires: new Date(0),
     });
     response.cookie('refresh_token', '', {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'lax',
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/',
       expires: new Date(0),
     });
